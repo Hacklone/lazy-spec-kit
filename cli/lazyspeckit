@@ -1,0 +1,554 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+# lazyspeckit — zero-deps CLI to bootstrap/upgrade SpecKit + install/update LazySpecKit prompts.
+#
+# Commands:
+#   lazyspeckit init        [ANY specify init args...]
+#   lazyspeckit upgrade     [--here | <path>] [extra specify init args...]
+#   lazyspeckit doctor      [--here | <path>]
+#   lazyspeckit self-update
+#   lazyspeckit version
+#
+# Env:
+#   LAZYSPECKIT_REF=main|v0.6.1|<sha>   pin LazySpecKit downloads (default: main)
+#   DEBUG=1                             bash trace
+#   NO_COLOR=1                          disable colors
+
+VERSION="0.6.1"
+
+OWNER_REPO="Hacklone/lazy-spec-kit"
+REF="${LAZYSPECKIT_REF:-main}"
+CLI_REPO_PATH="cli/lazyspeckit"
+SETUP_REPO_PATH="scripts/setup.sh"
+
+SPEC_KIT_GIT="git+https://github.com/github/spec-kit.git"
+
+DEBUG="${DEBUG:-0}"
+
+# ---------- logging ----------
+COLOR_ON="true"
+if [[ ! -t 1 || -n "${NO_COLOR:-}" ]]; then COLOR_ON="false"; fi
+c() {
+  local code="${1:-0}"; shift || true
+  if [[ "$COLOR_ON" == "true" ]]; then
+    printf "\033[%sm%s\033[0m" "$code" "$*"
+  else
+    printf "%s" "$*"
+  fi
+}
+info() { printf "%s %s\n" "$(c "36" "==>")" "$*"; }
+ok()   { printf "%s %s\n" "$(c "32" "✅")" "$*"; }
+warn() { printf "%s %s\n" "$(c "33" "⚠️")" "$*"; }
+err()  { printf "%s %s\n" "$(c "31" "✖")" "$*" >&2; }
+
+die() { err "$*"; exit 1; }
+have() { command -v "${1:-__missing__}" >/dev/null 2>&1; }
+
+on_err() {
+  local ec="$?"
+  local line="${BASH_LINENO[0]:-unknown}"
+  local cmd="${BASH_COMMAND:-unknown}"
+  err "Failed (exit $ec) at line ${line}: ${cmd}"
+  exit "$ec"
+}
+trap on_err ERR
+
+[[ "$DEBUG" == "1" ]] && set -x
+
+fetch() {
+  local url="${1:-}"
+  local out="${2:-}"
+  [[ -n "$url" && -n "$out" ]] || die "fetch: missing url/out"
+  if have curl; then
+    curl -fsSL --retry 3 --retry-delay 1 --connect-timeout 10 --max-time 180 \
+      -H "Cache-Control: no-cache" -H "Pragma: no-cache" "$url" -o "$out"
+  elif have wget; then
+    wget -qO "$out" --no-cache "$url"
+  else
+    die "Need curl or wget."
+  fi
+}
+
+raw_url() {
+  local path="${1:-}"
+  [[ -n "$path" ]] || die "raw_url: missing path"
+  printf 'https://raw.githubusercontent.com/%s/%s/%s' "$OWNER_REPO" "$REF" "$path"
+}
+
+cache_bust() {
+  local url="${1:-}"
+  [[ -n "$url" ]] || die "cache_bust: missing url"
+  printf "%s?cb=%s" "$url" "$(date +%s)"
+}
+
+# ---------- uv ----------
+is_windows_gitbash() {
+  local uname_s
+  uname_s="$(uname -s 2>/dev/null || true)"
+  [[ "$uname_s" == MINGW* || "$uname_s" == MSYS* || "$uname_s" == CYGWIN* ]]
+}
+
+ensure_uv() {
+  if have uv && have uvx; then
+    return 0
+  fi
+
+  if is_windows_gitbash; then
+    info "uv not found. Installing on Windows..."
+    if have winget; then
+      winget install --id Astral.Uv -e || die "winget install failed."
+    elif have scoop; then
+      scoop install uv || die "scoop install failed."
+    elif have choco; then
+      choco install uv -y || die "choco install failed."
+    else
+      warn "winget/scoop/choco not found in Git Bash."
+      warn "Run this in PowerShell, then restart Git Bash:"
+      echo "  winget install --id Astral.Uv -e"
+      die "uv is required. Install it, then retry."
+    fi
+    export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
+    have uv  || die "uv installed but not found in PATH (restart terminal)."
+    have uvx || die "uvx installed but not found in PATH (restart terminal)."
+    return 0
+  fi
+
+  info "uv not found. Installing..."
+  if have curl; then
+    curl -fsSL https://astral.sh/uv/install.sh | sh
+  elif have wget; then
+    wget -qO- https://astral.sh/uv/install.sh | sh
+  else
+    die "Need curl or wget to install uv."
+  fi
+
+  export PATH="$HOME/.local/bin:$PATH"
+  have uv  || die "uv installed but not found in PATH."
+  have uvx || die "uvx installed but not found in PATH."
+}
+
+uv_tool_available() { uv tool --help >/dev/null 2>&1; }
+
+ensure_uv_tool() {
+  ensure_uv
+  if uv_tool_available; then return 0; fi
+
+  warn "Your uv is missing 'uv tool'. Attempting: uv self update"
+  if uv self update >/dev/null 2>&1; then
+    uv_tool_available && return 0
+  fi
+  die "uv 'tool' subcommand is unavailable. Update uv from https://docs.astral.sh/uv/ and retry."
+}
+
+# ---------- target detection ----------
+infer_target_dir_from_init_args() {
+  # Prefer --here, otherwise use first non-flag arg as directory
+  local a=""
+  for a in "$@"; do
+    [[ "$a" == "--here" ]] && { pwd; return 0; }
+  done
+  for a in "$@"; do
+    if [[ "$a" != -* ]]; then
+      if [[ -d "$a" ]]; then (cd "$a" && pwd); else echo "$(pwd)/$a"; fi
+      return 0
+    fi
+  done
+  pwd
+}
+
+infer_target_simple() {
+  local arg="${1:-}"
+  if [[ "$arg" == "--here" || -z "$arg" ]]; then
+    pwd
+  else
+    if [[ -d "$arg" ]]; then (cd "$arg" && pwd); else echo "$(pwd)/$arg"; fi
+  fi
+}
+
+is_speckit_inited() { [[ -d "${1:-/__missing__}/.specify" ]]; }
+detect_vscode_usage() { [[ -d "${1:-/__missing__}/.vscode" || -d "${1:-/__missing__}/.github/prompts" ]]; }
+detect_claude_usage() { [[ -d "${1:-/__missing__}/.claude" || -d "${1:-/__missing__}/.claude/commands" ]]; }
+prompt_files_present() { [[ -f "${1:-/__missing__}/.github/prompts/LazySpecKit.prompt.md" || -f "${1:-/__missing__}/.claude/commands/LazySpecKit.md" ]]; }
+
+# ---------- ai detection ----------
+extract_ai_from_args() {
+  [[ $# -eq 0 ]] && return 1
+  local args=("$@")
+  local i
+  for ((i=0; i<${#args[@]}; i++)); do
+    if [[ "${args[$i]}" == "--ai" && $((i+1)) -lt ${#args[@]} ]]; then
+      printf "%s" "${args[$((i+1))]}"
+      return 0
+    fi
+    if [[ "${args[$i]}" == --ai=* ]]; then
+      printf "%s" "${args[$i]#--ai=}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+resolve_ai_targets() {
+  # Returns space-separated list of AI targets (from --ai flag or auto-detected).
+  local target="${1:-}"; shift || true
+
+  # If --ai was explicitly provided, use that
+  local ai=""
+  ai="$(extract_ai_from_args "$@" 2>/dev/null || true)"
+  if [[ -n "$ai" ]]; then echo "$ai"; return 0; fi
+
+  # Auto-detect from repo structure — supports multiple
+  local targets=""
+  if detect_vscode_usage "$target"; then targets="copilot"; fi
+  if detect_claude_usage "$target"; then targets="${targets:+$targets }claude"; fi
+
+  if [[ -n "$targets" ]]; then
+    echo "$targets"
+    return 0
+  fi
+
+  return 1
+}
+
+strip_ai_from_args() {
+  # Prints args with --ai/--ai=<val> removed (null-separated for safe reading).
+  local skip_next="false"
+  local arg
+  for arg in "$@"; do
+    if [[ "$skip_next" == "true" ]]; then skip_next="false"; continue; fi
+    if [[ "$arg" == "--ai" ]]; then skip_next="true"; continue; fi
+    if [[ "$arg" == --ai=* ]]; then continue; fi
+    printf "%s\0" "$arg"
+  done
+}
+
+# ---------- SpecKit updates ----------
+upgrade_speckit_cli() {
+  ensure_uv_tool
+  info "Upgrading SpecKit CLI (specify-cli)..."
+  uv tool install specify-cli --force --from "$SPEC_KIT_GIT" >/dev/null
+  ok "SpecKit CLI upgraded"
+}
+
+backup_speckit_customizations() {
+  local target="${1:-}" backup_dir="${2:-}"
+  [[ -n "$target" && -n "$backup_dir" ]] || die "backup: missing target/backup_dir"
+  mkdir -p "$backup_dir"
+
+  if [[ -f "$target/.specify/memory/constitution.md" ]]; then
+    cp -f "$target/.specify/memory/constitution.md" "$backup_dir/constitution.md"
+  fi
+  if [[ -d "$target/.specify/templates" ]]; then
+    mkdir -p "$backup_dir/templates"
+    cp -R "$target/.specify/templates/." "$backup_dir/templates/" 2>/dev/null || true
+  fi
+}
+
+restore_speckit_customizations() {
+  local target="${1:-}" backup_dir="${2:-}"
+  [[ -n "$target" && -n "$backup_dir" ]] || die "restore: missing target/backup_dir"
+
+  if [[ -f "$backup_dir/constitution.md" ]]; then
+    mkdir -p "$target/.specify/memory"
+    cp -f "$backup_dir/constitution.md" "$target/.specify/memory/constitution.md"
+  fi
+  if [[ -d "$backup_dir/templates" ]]; then
+    mkdir -p "$target/.specify/templates"
+    cp -R "$backup_dir/templates/." "$target/.specify/templates/" 2>/dev/null || true
+  fi
+}
+
+upgrade_speckit_project_files() {
+  local target="${1:-}"; shift || true
+  [[ -n "$target" ]] || die "upgrade_speckit_project_files: missing target"
+
+  info "Upgrading SpecKit project files in: $target"
+
+  local backup_dir
+  backup_dir="$(mktemp -d)"
+  trap 'rm -rf "$backup_dir"' RETURN
+
+  backup_speckit_customizations "$target" "$backup_dir"
+
+  local init_rc=0
+  # Run specify init in a subshell; disable ERR trap so failures are
+  # captured via exit code rather than killing the parent process.
+  (trap - ERR; cd "$target" && specify init --here --force "$@") || init_rc=$?
+
+  # Always restore customizations, even if specify init partially wrote files.
+  restore_speckit_customizations "$target" "$backup_dir"
+
+  if [[ "$init_rc" -ne 0 ]]; then
+    err "specify init failed (exit $init_rc)"
+    return "$init_rc"
+  fi
+
+  ok "SpecKit project files upgraded"
+}
+
+# ---------- LazySpecKit prompt install via setup.sh ----------
+run_setup() {
+  local target="${1:-}"
+  [[ -n "$target" ]] || die "run_setup: missing target"
+
+  local tmp
+  tmp="$(mktemp)"
+  trap 'rm -f "$tmp"' RETURN
+
+  local url
+  url="$(cache_bust "$(raw_url "$SETUP_REPO_PATH")")"
+  fetch "$url" "$tmp"
+  LAZYSPECKIT_REF="$REF" bash "$tmp" "$target"
+}
+
+# ---------- init ----------
+run_specify_init_if_needed() {
+  local target="${1:-}"; shift || true
+  [[ -n "$target" ]] || die "init: missing target"
+
+  if is_speckit_inited "$target"; then
+    info "SpecKit already initialized in: $target"
+    return 0
+  fi
+
+  ensure_uv
+  info "Initializing SpecKit (passthrough args): specify init ${*:-}"
+  uvx --from "$SPEC_KIT_GIT" specify init "$@"
+
+  if ! is_speckit_inited "$target"; then
+    die "SpecKit init ran, but .specify not found in inferred target: $target
+Tip: Use --here or pass a path-like target (./repo) so the target can be inferred reliably."
+  fi
+}
+
+cmd_init() {
+  local target
+  target="$(infer_target_dir_from_init_args "$@")"
+
+  run_specify_init_if_needed "$target" "$@"
+  info "Installing LazySpecKit prompts..."
+  run_setup "$target"
+
+  echo
+  ok "Done."
+  echo "Next:"
+  echo "  Open your agent in: $target"
+  echo "  Run: /LazySpecKit <Your spec here>"
+
+  if detect_vscode_usage "$target"; then
+    echo
+    warn "VS Code: If you don’t see the command immediately, run: Developer: Reload Window"
+  fi
+}
+
+# ---------- upgrade ----------
+cmd_upgrade() {
+  local target_arg="${1:-}"
+  local target
+  target="$(infer_target_simple "$target_arg")"
+  [[ -d "$target" ]] || die "Target folder does not exist: $target"
+
+  shift || true
+
+  # Resolve AI target(s): explicit --ai wins, otherwise auto-detect all present agents.
+  local ai_targets=""
+  ai_targets="$(resolve_ai_targets "$target" "$@")" \
+    || die "Could not detect AI agent(s) for upgrade. Pass --ai explicitly:
+  lazyspeckit upgrade --here --ai copilot
+  lazyspeckit upgrade --here --ai claude"
+
+  # Strip --ai from extra args so we can re-add per agent.
+  local clean_args=()
+  while IFS= read -r -d '' line; do
+    clean_args+=("$line")
+  done < <(strip_ai_from_args "$@")
+
+  # Ensure uv is available (required for SpecKit operations).
+  ensure_uv_tool
+
+  # Upgrade SpecKit CLI (non-fatal — prompt install should still succeed).
+  info "Upgrading SpecKit CLI (specify-cli)..."
+  if uv tool install specify-cli --force --from "$SPEC_KIT_GIT" >/dev/null 2>&1; then
+    ok "SpecKit CLI upgraded"
+  else
+    warn "SpecKit CLI upgrade failed (continuing with existing version if available)"
+  fi
+
+  # Upgrade SpecKit project files for each detected AI agent (non-fatal).
+  local ai
+  for ai in $ai_targets; do
+    if ! upgrade_speckit_project_files "$target" ${clean_args[@]+"${clean_args[@]}"} --ai "$ai"; then
+      warn "SpecKit project upgrade for '${ai}' failed (continuing)"
+    fi
+  done
+
+  # Always install LazySpecKit prompts, regardless of SpecKit outcome.
+  info "Upgrading LazySpecKit prompts..."
+  run_setup "$target"
+
+  echo
+  ok "Upgraded in: $target"
+  if detect_vscode_usage "$target"; then
+    warn "VS Code: If you don’t see updates immediately, run: Developer: Reload Window"
+  fi
+}
+
+# ---------- doctor/version/self-update ----------
+remote_cli_version() {
+  local tmp
+  tmp="$(mktemp)"
+  trap 'rm -f "$tmp"' RETURN
+  local url
+  url="$(cache_bust "$(raw_url "$CLI_REPO_PATH")")"
+  fetch "$url" "$tmp" || return 1
+  grep -E '^VERSION="' "$tmp" | head -n 1 | sed -E 's/^VERSION="([^"]+)".*/\1/'
+}
+
+cmd_version() {
+  echo "lazyspeckit $VERSION"
+  local rv=""
+  rv="$(remote_cli_version 2>/dev/null || true)"
+  if [[ -n "$rv" ]]; then
+    echo "remote:     $rv"
+    [[ "$rv" == "$VERSION" ]] || warn "Update available: lazyspeckit self-update"
+  else
+    warn "Could not determine remote version."
+  fi
+}
+
+self_update_writable_hint() {
+  local self="${1:-}"
+  [[ -n "$self" ]] || self="(unknown)"
+  warn "Cannot write to: $self"
+  if [[ "$self" == *"/opt/homebrew/"* || "$self" == *"/usr/local/"* || "$self" == *"/usr/bin/"* ]]; then
+    warn "Looks like a system/brew install path."
+    echo "If installed via brew: run 'brew upgrade lazyspeckit'"
+    echo "Otherwise reinstall with:"
+    echo "  bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/${OWNER_REPO}/${REF}/install.sh)\""
+  else
+    echo "Re-run with appropriate permissions, or reinstall with:"
+    echo "  bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/${OWNER_REPO}/${REF}/install.sh)\""
+  fi
+}
+
+cmd_self_update() {
+  local self=""
+  self="$(command -v lazyspeckit 2>/dev/null || true)"
+  [[ -n "$self" ]] || self="${0:-lazyspeckit}"
+
+  if [[ ! -w "$self" ]]; then
+    self_update_writable_hint "$self"
+    exit 1
+  fi
+
+  local tmp
+  tmp="$(mktemp)"
+  trap 'rm -f "$tmp"' RETURN
+
+  local url
+  url="$(cache_bust "$(raw_url "$CLI_REPO_PATH")")"
+  info "Updating lazyspeckit CLI (ref: $REF)..."
+  fetch "$url" "$tmp"
+  grep -q "lazyspeckit" "$tmp" || die "Downloaded CLI does not look valid."
+  chmod +x "$tmp" || true
+  mv "$tmp" "$self"
+  ok "LazySpecKit CLI updated"
+
+  upgrade_speckit_cli
+
+  echo
+  ok "All set."
+}
+
+cmd_doctor() {
+  local target_arg="${1:-}"
+  local target
+  target="$(infer_target_simple "$target_arg")"
+
+  info "lazyspeckit doctor"
+  echo "local version:  $VERSION"
+  local rv=""
+  rv="$(remote_cli_version 2>/dev/null || true)"
+  echo "remote version: ${rv:-unknown}"
+  if [[ -n "$rv" && "$rv" != "$VERSION" ]]; then warn "Update available: lazyspeckit self-update"; fi
+  echo
+
+  echo "target: $target"
+  if [[ -d "$target" ]]; then
+    echo "target exists: yes"
+  else
+    echo "target exists: no"
+    echo "tip: pass --here or an existing path"
+    return 0
+  fi
+  echo
+
+  echo "curl:     $(have curl && echo yes || echo no)"
+  echo "wget:     $(have wget && echo yes || echo no)"
+  echo "uv:       $(have uv && echo yes || echo no)"
+  echo "uvx:      $(have uvx && echo yes || echo no)"
+  echo "uv tool:  $({ uv tool --help >/dev/null 2>&1 && echo yes || echo no; } 2>/dev/null)"
+  echo "uv ver:   $({ uv --version 2>/dev/null || echo unknown; } | head -n 1)"
+  echo "specify:  $(have specify && echo yes || echo no)"
+  echo "specify ver: $({ specify --version 2>/dev/null || echo unknown; } | head -n 1)"
+  echo
+
+  echo "SpecKit initialized (.specify): $(is_speckit_inited "$target" && echo yes || echo no)"
+  echo "VS Code detected:               $(detect_vscode_usage "$target" && echo yes || echo no)"
+  echo "Claude detected:                $(detect_claude_usage "$target" && echo yes || echo no)"
+  echo "LazySpecKit prompt files:       $(prompt_files_present "$target" && echo yes || echo no)"
+  echo
+
+  echo "Actions:"
+  echo "  - upgrade everything: lazyspeckit upgrade --here --ai copilot"
+  echo "  - update CLI+SpecKit: lazyspeckit self-update"
+}
+
+usage() {
+  cat <<'EOF'
+lazyspeckit
+
+Commands:
+  lazyspeckit init        [ANY specify init args...]
+  lazyspeckit upgrade     [--here | <path>] [extra specify init args...]
+  lazyspeckit doctor      [--here | <path>]
+  lazyspeckit self-update
+  lazyspeckit version
+  lazyspeckit --help
+
+Examples:
+  lazyspeckit init --here --ai copilot
+  lazyspeckit init ./my-repo --ai claude
+
+  lazyspeckit upgrade --here --ai copilot
+  lazyspeckit upgrade ./my-repo --ai claude
+
+  lazyspeckit doctor --here
+  lazyspeckit version
+  lazyspeckit self-update
+
+Debug:
+  DEBUG=1 lazyspeckit doctor --here
+  NO_COLOR=1 lazyspeckit doctor --here
+
+Pin LazySpecKit downloads:
+  LAZYSPECKIT_REF=v0.6.1 lazyspeckit self-update
+EOF
+}
+
+main() {
+  local cmd="${1:-}"
+  shift || true
+  case "$cmd" in
+    init)        cmd_init "$@" ;;
+    upgrade)     cmd_upgrade "$@" ;;
+    doctor)      cmd_doctor "$@" ;;
+    self-update) cmd_self_update ;;
+    version)     cmd_version ;;
+    -h|--help|"") usage ;;
+    *) die "Unknown command: $cmd (try --help)" ;;
+  esac
+}
+
+main "$@"
