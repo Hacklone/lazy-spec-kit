@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LazySpecKit — SpecKit without babysitting</title>
+  <meta name="description" content="Write your spec. Answer questions. Everything else runs automatically. LazySpecKit orchestrates GitHub SpecKit end-to-end.">
+  <meta name="theme-color" content="#0ff0fc">
+  <meta property="og:title" content="LazySpecKit ⚡">
+  <meta property="og:description" content="SpecKit without babysitting. One command to spec, plan, implement, and validate.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://hacklone.github.io/lazy-spec-kit/">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+  <style>
+    /* ============ Reset & Base ============ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0e17;
+      --bg-card: #111827;
+      --bg-code: #0d1117;
+      --bg-hover: #1a2332;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --accent: #0ff0fc;
+      --accent-glow: rgba(15, 240, 252, 0.15);
+      --accent2: #a78bfa;
+      --accent3: #34d399;
+      --border: #1e293b;
+      --border-subtle: #1a2332;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      --max-w: 960px;
+      --section-gap: 7rem;
+    }
+
+    html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::selection { background: var(--accent); color: var(--bg); }
+
+    a { color: var(--accent); text-decoration: none; transition: opacity .15s; }
+    a:hover { opacity: .8; }
+
+    img { max-width: 100%; }
+
+    /* ============ Utility ============ */
+    .container { max-width: var(--max-w); margin: 0 auto; padding: 0 1.5rem; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+
+    /* ============ Navigation ============ */
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(10, 14, 23, 0.85);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .nav-inner {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 3.5rem;
+    }
+    .nav-brand {
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .nav-brand span { font-size: 1.1rem; }
+    .nav-links { display: flex; gap: 1.5rem; list-style: none; }
+    .nav-links a {
+      color: var(--text-muted);
+      font-size: .85rem;
+      font-weight: 500;
+      transition: color .15s;
+    }
+    .nav-links a:hover { color: var(--text); opacity: 1; }
+    .nav-hamburger {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.4rem;
+      cursor: pointer;
+      padding: .25rem;
+    }
+
+    @media (max-width: 700px) {
+      .nav-hamburger { display: block; }
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 3.5rem; left: 0; right: 0;
+        flex-direction: column;
+        background: rgba(10, 14, 23, 0.97);
+        border-bottom: 1px solid var(--border);
+        padding: 1rem 1.5rem;
+        gap: .75rem;
+      }
+      .nav-links.open { display: flex; }
+    }
+
+    /* ============ Hero ============ */
+    .hero {
+      padding: 9rem 0 5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -20%; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: .35rem 1rem;
+      font-size: .8rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+    .hero-badge .dot {
+      width: 8px; height: 8px;
+      background: var(--accent3);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .4; }
+    }
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 1.25rem;
+    }
+    .hero h1 .accent { color: var(--accent); }
+    .hero .subtitle {
+      font-size: clamp(1.05rem, 2.5vw, 1.25rem);
+      color: var(--text-muted);
+      max-width: 560px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.6;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .7rem 1.5rem;
+      border-radius: var(--radius-sm);
+      font-size: .9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all .15s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg);
+    }
+    .btn-primary:hover { background: #33f5ff; opacity: 1; box-shadow: 0 0 24px var(--accent-glow); }
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { border-color: var(--accent); opacity: 1; }
+
+    /* ============ Sections ============ */
+    section { padding: var(--section-gap) 0; }
+    .section-label {
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--accent);
+      margin-bottom: .75rem;
+    }
+    .section-title {
+      font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+    .section-desc {
+      color: var(--text-muted);
+      max-width: 600px;
+      margin-bottom: 2.5rem;
+      font-size: 1.05rem;
+    }
+
+    /* ============ Install Strip ============ */
+    .install-strip {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      max-width: 640px;
+      margin: 0 auto;
+      position: relative;
+    }
+    .install-strip code {
+      font-family: var(--font-mono);
+      font-size: .85rem;
+      color: var(--accent);
+      white-space: nowrap;
+      overflow-x: auto;
+      flex: 1;
+    }
+
+    /* ============ Code Blocks ============ */
+    .code-block {
+      position: relative;
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      margin: 1rem 0;
+    }
+    .code-block-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .5rem .75rem;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      font-size: .75rem;
+      color: var(--text-dim);
+    }
+    .code-block pre {
+      padding: 1rem 1.25rem;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: .85rem;
+      line-height: 1.6;
+      color: var(--text);
+    }
+    .code-block pre .comment { color: var(--text-dim); }
+    .code-block pre .cmd { color: var(--accent3); }
+    .code-block pre .flag { color: var(--accent2); }
+    .code-block pre .string { color: #fbbf24; }
+
+    /* ============ Copy Button ============ */
+    .copy-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      font-size: .7rem;
+      padding: .25rem .55rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: var(--font-sans);
+      transition: all .15s;
+      display: inline-flex;
+      align-items: center;
+      gap: .3rem;
+    }
+    .copy-btn:hover { color: var(--text); border-color: var(--text-muted); }
+    .copy-btn.copied { color: var(--accent3); border-color: var(--accent3); }
+
+    /* ============ Terminal Animation ============ */
+    .terminal-window {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      max-width: 700px;
+      margin: 2.5rem auto 0;
+      box-shadow: 0 24px 80px rgba(0,0,0,.4);
+    }
+    .terminal-titlebar {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .65rem 1rem;
+      background: #161b22;
+      border-bottom: 1px solid var(--border);
+    }
+    .terminal-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+    }
+    .terminal-dot.red { background: #ff5f56; }
+    .terminal-dot.yellow { background: #ffbd2e; }
+    .terminal-dot.green { background: #27c93f; }
+    .terminal-title {
+      flex: 1;
+      text-align: center;
+      font-size: .75rem;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+    }
+    .terminal-body {
+      padding: 1.25rem;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      line-height: 1.7;
+      min-height: 280px;
+      color: var(--text);
+    }
+    .terminal-line {
+      opacity: 0;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .terminal-line.visible { opacity: 1; }
+    .terminal-line .prompt { color: var(--accent3); }
+    .terminal-line .info { color: #22d3ee; }
+    .terminal-line .ok { color: var(--accent3); }
+    .terminal-line .warn { color: #fbbf24; }
+    .terminal-line .cmd-text { color: var(--text); }
+
+    /* ============ How It Works — Timeline ============ */
+    .timeline { position: relative; padding-left: 2rem; }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 7px; top: 0; bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, var(--accent), var(--accent2), var(--accent3));
+      border-radius: 2px;
+    }
+    .timeline-step {
+      position: relative;
+      padding: 0 0 2.5rem 1.5rem;
+    }
+    .timeline-step:last-child { padding-bottom: 0; }
+    .timeline-step::before {
+      content: '';
+      position: absolute;
+      left: -2rem; top: .3rem;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 2px solid var(--accent);
+    }
+    .timeline-step:nth-child(even)::before { border-color: var(--accent2); }
+    .timeline-step:nth-child(3n)::before { border-color: var(--accent3); }
+    .timeline-step .step-label {
+      font-size: .7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--accent);
+      margin-bottom: .25rem;
+    }
+    .timeline-step:nth-child(even) .step-label { color: var(--accent2); }
+    .timeline-step:nth-child(3n) .step-label { color: var(--accent3); }
+    .timeline-step h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: .25rem;
+    }
+    .timeline-step p {
+      color: var(--text-muted);
+      font-size: .9rem;
+    }
+    .timeline-step .badge-auto {
+      display: inline-block;
+      font-size: .65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      padding: .15rem .5rem;
+      border-radius: 4px;
+      background: rgba(52, 211, 153, .15);
+      color: var(--accent3);
+      margin-left: .5rem;
+      vertical-align: middle;
+    }
+    .timeline-step .badge-pause {
+      display: inline-block;
+      font-size: .65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      padding: .15rem .5rem;
+      border-radius: 4px;
+      background: rgba(251, 191, 36, .15);
+      color: #fbbf24;
+      margin-left: .5rem;
+      vertical-align: middle;
+    }
+
+    /* ============ Feature Cards ============ */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.25rem;
+    }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent), 0 8px 32px rgba(15, 240, 252, .06);
+    }
+    .card-icon {
+      font-size: 1.5rem;
+      margin-bottom: .75rem;
+    }
+    .card h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: .4rem;
+    }
+    .card p {
+      color: var(--text-muted);
+      font-size: .88rem;
+      line-height: 1.55;
+    }
+
+    /* ============ CLI Reference ============ */
+    .cli-cmd {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .cli-cmd h3 {
+      font-family: var(--font-mono);
+      font-size: .95rem;
+      color: var(--accent);
+      margin-bottom: .4rem;
+    }
+    .cli-cmd p {
+      color: var(--text-muted);
+      font-size: .88rem;
+    }
+
+    /* ============ Comparison Table ============ */
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      margin-top: 2rem;
+    }
+    @media (max-width: 600px) { .comparison { grid-template-columns: 1fr; } }
+    .comparison-col {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+    }
+    .comparison-col.highlight {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent), 0 8px 32px rgba(15, 240, 252, .06);
+    }
+    .comparison-col h3 {
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .comparison-col ul {
+      list-style: none;
+      padding: 0;
+    }
+    .comparison-col li {
+      padding: .35rem 0;
+      font-size: .88rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: flex-start;
+      gap: .5rem;
+    }
+    .comparison-col li::before {
+      content: '›';
+      color: var(--text-dim);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .comparison-col.highlight li::before {
+      content: '✓';
+      color: var(--accent3);
+    }
+
+    /* ============ Env Table ============ */
+    .env-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+    .env-table th {
+      text-align: left;
+      padding: .75rem 1rem;
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border);
+    }
+    .env-table td {
+      padding: .75rem 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: top;
+    }
+    .env-table code {
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      color: var(--accent);
+    }
+    .env-table .desc { color: var(--text-muted); }
+
+    /* ============ Agent Badges ============ */
+    .agent-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin-top: 1.5rem;
+    }
+    .agent-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+    }
+    .agent-card h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: .25rem;
+    }
+    .agent-card .agent-flag {
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      color: var(--accent2);
+      margin-bottom: .5rem;
+    }
+    .agent-card .agent-path {
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: var(--text-dim);
+      margin-bottom: .75rem;
+    }
+    .agent-card .agent-tip {
+      font-size: .82rem;
+      color: var(--text-muted);
+      padding-top: .5rem;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    /* ============ FAQ ============ */
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 0;
+    }
+    .faq-item:first-child { border-top: 1px solid var(--border); }
+    .faq-q {
+      font-weight: 600;
+      font-size: .95rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      user-select: none;
+    }
+    .faq-q::after {
+      content: '+';
+      font-size: 1.2rem;
+      color: var(--text-dim);
+      flex-shrink: 0;
+      transition: transform .2s;
+    }
+    .faq-item.open .faq-q::after { content: '−'; }
+    .faq-a {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height .3s ease, padding .3s ease;
+      color: var(--text-muted);
+      font-size: .9rem;
+      line-height: 1.65;
+    }
+    .faq-item.open .faq-a {
+      max-height: 300px;
+      padding-top: .75rem;
+    }
+
+    /* ============ Troubleshooting ============ */
+    .ts-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: .75rem;
+    }
+    .ts-item h3 {
+      font-family: var(--font-mono);
+      font-size: .88rem;
+      color: #fbbf24;
+      margin-bottom: .35rem;
+    }
+    .ts-item p {
+      color: var(--text-muted);
+      font-size: .88rem;
+    }
+    .ts-item code {
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      color: var(--accent);
+      background: var(--bg-code);
+      padding: .1rem .35rem;
+      border-radius: 3px;
+    }
+
+    /* ============ Footer ============ */
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 2.5rem 0;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: .82rem;
+    }
+    .footer a { color: var(--text-muted); }
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-bottom: .75rem;
+      flex-wrap: wrap;
+    }
+
+    /* ============ Separator ============ */
+    .sep {
+      border: none;
+      height: 1px;
+      background: var(--border);
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ==================== NAV ==================== -->
+<nav class="nav" role="navigation" aria-label="Main">
+  <div class="nav-inner">
+    <a href="#" class="nav-brand">⚡ <span>LazySpecKit</span></a>
+    <button class="nav-hamburger" aria-label="Toggle menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">☰</button>
+    <ul class="nav-links">
+      <li><a href="#install">Install</a></li>
+      <li><a href="#quick-start">Quick Start</a></li>
+      <li><a href="#how-it-works">How It Works</a></li>
+      <li><a href="#cli">CLI</a></li>
+      <li><a href="#faq">FAQ</a></li>
+      <li><a href="https://github.com/Hacklone/lazy-spec-kit">GitHub ↗</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ==================== HERO ==================== -->
+<header class="hero" id="top">
+  <div class="container">
+    <div class="hero-badge"><span class="dot"></span> Open source &middot; MIT License</div>
+    <h1>SpecKit without<br><span class="accent">babysitting.</span></h1>
+    <p class="subtitle">Write your spec. Answer clarification questions. Everything else — planning, implementation, validation — runs automatically.</p>
+    <div class="hero-actions">
+      <a href="#install" class="btn btn-primary">Get Started</a>
+      <a href="https://github.com/Hacklone/lazy-spec-kit" class="btn btn-secondary">View on GitHub</a>
+    </div>
+  </div>
+</header>
+
+<!-- ==================== TERMINAL DEMO ==================== -->
+<section style="padding-top: 0; padding-bottom: var(--section-gap);">
+  <div class="container">
+    <div class="terminal-window" role="img" aria-label="Animated terminal showing LazySpecKit in action">
+      <div class="terminal-titlebar">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot yellow"></span>
+        <span class="terminal-dot green"></span>
+        <span class="terminal-title">zsh — lazyspeckit</span>
+      </div>
+      <div class="terminal-body" id="terminal-demo">
+        <div class="terminal-line"><span class="prompt">$</span> <span class="cmd-text">lazyspeckit init --here --ai copilot</span></div>
+        <div class="terminal-line"><span class="info">==></span> Initializing SpecKit (passthrough args): specify init --here --ai copilot</div>
+        <div class="terminal-line"><span class="ok">✅</span> SpecKit initialized</div>
+        <div class="terminal-line"><span class="info">==></span> Installing LazySpecKit prompts...</div>
+        <div class="terminal-line"><span class="ok">✅</span> Prompts installed:</div>
+        <div class="terminal-line">    .github/prompts/LazySpecKit.prompt.md</div>
+        <div class="terminal-line">    .claude/commands/LazySpecKit.md</div>
+        <div class="terminal-line"><span class="ok">✅</span> Done.</div>
+        <div class="terminal-line"> </div>
+        <div class="terminal-line">Next:</div>
+        <div class="terminal-line">  Open your agent in: /Users/you/my-project</div>
+        <div class="terminal-line">  Run: <span class="cmd-text">/LazySpecKit &lt;Your spec here&gt;</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== WHAT IS SPECKIT ==================== -->
+<section id="what-is-speckit">
+  <div class="container">
+    <p class="section-label">Background</p>
+    <h2 class="section-title">What is SpecKit?</h2>
+    <p class="section-desc"><a href="https://github.com/github/spec-kit">GitHub SpecKit</a> is a structured workflow for AI-assisted development. It turns a natural-language spec into a formal plan, generates tasks, validates spec quality, implements code, and runs validation — all through slash commands.</p>
+
+    <div class="cards" style="margin-top: .5rem;">
+      <div class="card">
+        <div class="card-icon">📋</div>
+        <h3>Structured Phases</h3>
+        <p>Specify → Clarify → Plan → Tasks → Implement. Each phase builds on the last.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔍</div>
+        <h3>Quality Gates</h3>
+        <p>Checklist + analyze catch spec issues before code is written.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">⚡</div>
+        <h3>LazySpecKit Adds</h3>
+        <p>Full automation. One command runs every phase, pausing only for clarification.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== INSTALL ==================== -->
+<section id="install">
+  <div class="container">
+    <p class="section-label">Step 1</p>
+    <h2 class="section-title">Install in one command</h2>
+    <p class="section-desc">Requires <code>bash</code> + <code>curl</code> (or <code>wget</code>). Works on macOS, Linux, and Windows (Git Bash).</p>
+
+    <div class="install-strip">
+      <code>bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/main/install.sh)"</code>
+      <button class="copy-btn" data-copy='bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/main/install.sh)"' aria-label="Copy install command">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        Copy
+      </button>
+    </div>
+
+    <p style="text-align:center; color: var(--text-dim); font-size: .82rem; margin-top: 1rem;">
+      Installs to <code style="color:var(--text-muted); font-family:var(--font-mono); font-size:.8rem;">~/.local/bin</code> (or <code style="color:var(--text-muted); font-family:var(--font-mono); font-size:.8rem;">~/bin</code> on Windows Git Bash)
+    </p>
+  </div>
+</section>
+
+<!-- ==================== QUICK START ==================== -->
+<section id="quick-start">
+  <div class="container">
+    <p class="section-label">Step 2</p>
+    <h2 class="section-title">Quick Start</h2>
+    <p class="section-desc">Initialize your project, then use the prompt. Two steps, no config files to write.</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>Terminal</span>
+        <button class="copy-btn" data-copy="lazyspeckit init --here --ai copilot" aria-label="Copy command">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          Copy
+        </button>
+      </div>
+      <pre><span class="comment"># For VS Code Copilot</span>
+<span class="cmd">lazyspeckit init</span> <span class="flag">--here --ai copilot</span>
+
+<span class="comment"># For Claude Code</span>
+<span class="cmd">lazyspeckit init</span> <span class="flag">--here --ai claude</span></pre>
+    </div>
+
+    <p style="margin: 1.5rem 0 .75rem; font-weight: 600;">Then in your AI assistant:</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>AI Prompt</span>
+        <button class="copy-btn" data-copy="/LazySpecKit Add OAuth login with GitHub and Google. Store users in Postgres. Add tests." aria-label="Copy prompt">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          Copy
+        </button>
+      </div>
+      <pre><span class="cmd">/LazySpecKit</span> <span class="string">Add OAuth login with GitHub and Google. Store users in Postgres. Add tests.</span></pre>
+    </div>
+
+    <p style="color: var(--text-muted); font-size: .9rem; margin-top: 1rem;">That's it. LazySpecKit takes over from there. ☕</p>
+  </div>
+</section>
+
+<!-- ==================== HOW IT WORKS ==================== -->
+<section id="how-it-works">
+  <div class="container">
+    <p class="section-label">Under the hood</p>
+    <h2 class="section-title">How It Works</h2>
+    <p class="section-desc">LazySpecKit orchestrates the full SpecKit lifecycle. You interact at most twice — everything else runs automatically.</p>
+
+    <div class="timeline">
+      <div class="timeline-step">
+        <div class="step-label">Phase 0</div>
+        <h3>Constitution <span class="badge-pause">if missing</span></h3>
+        <p>Checks for an existing constitution. If none found, asks you to provide one — once.</p>
+      </div>
+      <div class="timeline-step">
+        <div class="step-label">Phase 1</div>
+        <h3>Specify <span class="badge-auto">automatic</span></h3>
+        <p>Runs <code>/speckit.specify</code> with your spec text verbatim.</p>
+      </div>
+      <div class="timeline-step">
+        <div class="step-label">Phase 2</div>
+        <h3>Clarify <span class="badge-pause">your input</span></h3>
+        <p>Presents clarification questions. Answer once, then sit back.</p>
+      </div>
+      <div class="timeline-step">
+        <div class="step-label">Phase 3</div>
+        <h3>Plan <span class="badge-auto">automatic</span></h3>
+        <p>Generates a structured implementation plan from the clarified spec.</p>
+      </div>
+      <div class="timeline-step">
+        <div class="step-label">Phase 4</div>
+        <h3>Tasks <span class="badge-auto">automatic</span></h3>
+        <p>Breaks the plan into sequential, actionable tasks.</p>
+      </div>
+      <div class="timeline-step">
+        <div class="step-label">Phase 5</div>
+        <h3>Quality Gates <span class="badge-auto">automatic</span></h3>
+        <p>Runs <code>/speckit.checklist</code> and <code>/speckit.analyze</code>. Auto-fixes spec issues until clean.</p>
+      </div>
+      <div class="timeline-step">
+        <div class="step-label">Phase 6</div>
+        <h3>Implement <span class="badge-auto">automatic</span></h3>
+        <p>Executes all tasks in a fresh implementation session. Strict, in-order.</p>
+      </div>
+      <div class="timeline-step">
+        <div class="step-label">Phase 7</div>
+        <h3>Validate <span class="badge-auto">automatic</span></h3>
+        <p>Detects and runs lint, typecheck, tests, and build. Reports results.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== CLI REFERENCE ==================== -->
+<section id="cli">
+  <div class="container">
+    <p class="section-label">Reference</p>
+    <h2 class="section-title">CLI Commands</h2>
+    <p class="section-desc">Everything you can do with the <code>lazyspeckit</code> CLI.</p>
+
+    <div class="cli-cmd">
+      <h3>lazyspeckit init <span style="color:var(--text-dim)">[specify init args...]</span></h3>
+      <p>Initializes SpecKit and installs LazySpecKit prompts. All flags pass through to <code>specify init</code>.</p>
+    </div>
+    <div class="cli-cmd">
+      <h3>lazyspeckit upgrade <span style="color:var(--text-dim)">[--here | &lt;path&gt;]</span></h3>
+      <p>Upgrades SpecKit CLI, project files, and LazySpecKit prompts. Auto-detects all configured AI agents. SpecKit failures are non-fatal — prompts always update.</p>
+    </div>
+    <div class="cli-cmd">
+      <h3>lazyspeckit doctor <span style="color:var(--text-dim)">[--here | &lt;path&gt;]</span></h3>
+      <p>Shows diagnostics: versions, tools, SpecKit status, prompt file presence. Makes no changes.</p>
+    </div>
+    <div class="cli-cmd">
+      <h3>lazyspeckit self-update</h3>
+      <p>Updates the CLI binary itself and upgrades the SpecKit CLI.</p>
+    </div>
+    <div class="cli-cmd">
+      <h3>lazyspeckit version</h3>
+      <p>Shows local and remote CLI versions. Hints if an update is available.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== AGENTS ==================== -->
+<section id="agents">
+  <div class="container">
+    <p class="section-label">Supported</p>
+    <h2 class="section-title">AI Agents</h2>
+    <p class="section-desc">Same prompt, different locations. Both get installed automatically.</p>
+
+    <div class="agent-grid">
+      <div class="agent-card">
+        <h3>VS Code Copilot</h3>
+        <div class="agent-flag">--ai copilot</div>
+        <div class="agent-path">.github/prompts/LazySpecKit.prompt.md</div>
+        <div class="agent-tip">If <code>/LazySpecKit</code> doesn't appear, run <strong>Developer: Reload Window</strong></div>
+      </div>
+      <div class="agent-card">
+        <h3>Claude Code</h3>
+        <div class="agent-flag">--ai claude</div>
+        <div class="agent-path">.claude/commands/LazySpecKit.md</div>
+        <div class="agent-tip">If <code>/LazySpecKit</code> doesn't appear, restart your session or reopen the repo</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== ENV VARS ==================== -->
+<section id="env">
+  <div class="container">
+    <p class="section-label">Configuration</p>
+    <h2 class="section-title">Environment Variables</h2>
+
+    <table class="env-table">
+      <thead>
+        <tr><th>Variable</th><th>Default</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>LAZYSPECKIT_REF</code></td><td><code>main</code></td><td class="desc">Pin downloads to a branch, tag, or commit SHA</td></tr>
+        <tr><td><code>DEBUG</code></td><td><code>0</code></td><td class="desc">Set to <code>1</code> for bash trace output</td></tr>
+        <tr><td><code>NO_COLOR</code></td><td>—</td><td class="desc">Set to <code>1</code> to disable colored output</td></tr>
+        <tr><td><code>BIN_DIR</code></td><td><code>~/.local/bin</code></td><td class="desc">Override install location (install.sh only)</td></tr>
+      </tbody>
+    </table>
+
+    <div class="code-block" style="margin-top: 1.5rem;">
+      <div class="code-block-header">
+        <span>Pin to a specific version</span>
+        <button class="copy-btn" data-copy="LAZYSPECKIT_REF=v0.6.1 lazyspeckit self-update" aria-label="Copy command">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          Copy
+        </button>
+      </div>
+      <pre><span class="cmd">LAZYSPECKIT_REF</span>=<span class="string">v0.6.1</span> <span class="cmd">lazyspeckit self-update</span></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== TROUBLESHOOTING ==================== -->
+<section id="troubleshooting">
+  <div class="container">
+    <p class="section-label">Help</p>
+    <h2 class="section-title">Troubleshooting</h2>
+
+    <div class="ts-item">
+      <h3>lazyspeckit: command not found</h3>
+      <p>Add <code>export PATH="$HOME/.local/bin:$PATH"</code> to your <code>~/.bashrc</code> or <code>~/.zshrc</code>, then restart your terminal. On Windows Git Bash, the default is <code>~/bin</code>.</p>
+    </div>
+    <div class="ts-item">
+      <h3>uv or uvx not found</h3>
+      <p>LazySpecKit installs <a href="https://docs.astral.sh/uv/">uv</a> automatically. If it fails, run <code>curl -LsSf https://astral.sh/uv/install.sh | sh</code> manually.</p>
+    </div>
+    <div class="ts-item">
+      <h3>Windows: winget not found from Git Bash</h3>
+      <p>Run <code>winget install --id Astral.Uv -e</code> in <strong>PowerShell</strong> instead, then restart Git Bash.</p>
+    </div>
+    <div class="ts-item">
+      <h3>Something else is broken</h3>
+      <p>Run <code>lazyspeckit doctor --here</code> for diagnostics. Add <code>DEBUG=1</code> for full trace output.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== FAQ ==================== -->
+<section id="faq">
+  <div class="container">
+    <p class="section-label">Questions</p>
+    <h2 class="section-title">FAQ</h2>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        Why does upgrade run <code>specify init --force</code>?
+      </div>
+      <div class="faq-a">That's how SpecKit refreshes its project files (slash commands, templates). LazySpecKit automatically backs up and restores your constitution and custom templates.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        What does LazySpecKit back up during upgrade?
+      </div>
+      <div class="faq-a">Your constitution (<code>.specify/memory/constitution.md</code>) and custom templates (<code>.specify/templates/</code>). Both are restored after <code>specify init --force</code>.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        Can I use both Copilot and Claude in the same repo?
+      </div>
+      <div class="faq-a">Yes. Both <code>init</code> and <code>upgrade</code> install prompts for all detected agents. The prompt content is identical — only the file location differs.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        Does LazySpecKit modify my source code?
+      </div>
+      <div class="faq-a">The CLI only manages SpecKit configuration and prompt files. The <code>/LazySpecKit</code> prompt generates and modifies source code during implementation — that's the whole point.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        What happens if SpecKit fails during upgrade?
+      </div>
+      <div class="faq-a">SpecKit failures are non-fatal during upgrade. LazySpecKit always installs the latest prompts regardless. Your customizations are backed up and restored even on failure.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        What does LazySpecKit respect from my repo?
+      </div>
+      <div class="faq-a">LazySpecKit respects <code>agents.md</code> governance files. A root-level <code>agents.md</code> applies repo-wide; nested ones apply to their directory subtree. Rules are enforced across all phases.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== UNINSTALL ==================== -->
+<section id="uninstall" style="padding-bottom: 3rem;">
+  <div class="container">
+    <p class="section-label">Cleanup</p>
+    <h2 class="section-title">Uninstall</h2>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>Remove the CLI</span>
+        <button class="copy-btn" data-copy="rm ~/.local/bin/lazyspeckit" aria-label="Copy command">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          Copy
+        </button>
+      </div>
+      <pre><span class="comment"># macOS / Linux</span>
+<span class="cmd">rm</span> ~/.local/bin/lazyspeckit
+
+<span class="comment"># Windows Git Bash</span>
+<span class="cmd">rm</span> ~/bin/lazyspeckit</pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-block-header"><span>Remove prompts from a repo</span></div>
+      <pre><span class="cmd">rm</span> .github/prompts/LazySpecKit.prompt.md
+<span class="cmd">rm</span> .claude/commands/LazySpecKit.md</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== FOOTER ==================== -->
+<hr class="sep">
+<footer class="footer">
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/Hacklone/lazy-spec-kit">GitHub</a>
+      <a href="https://github.com/Hacklone/lazy-spec-kit/issues">Issues</a>
+      <a href="https://github.com/github/spec-kit">SpecKit</a>
+    </div>
+    <p>MIT License &middot; LazySpecKit ⚡</p>
+  </div>
+</footer>
+
+<!-- ==================== SCRIPTS ==================== -->
+<script>
+// ---- Copy to clipboard ----
+document.querySelectorAll('.copy-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const text = btn.dataset.copy;
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.classList.add('copied');
+      const orig = btn.innerHTML;
+      btn.innerHTML = btn.innerHTML.replace('Copy', 'Copied!');
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.innerHTML = orig;
+      }, 1500);
+    });
+  });
+});
+
+// ---- Terminal animation ----
+(function() {
+  const lines = document.querySelectorAll('#terminal-demo .terminal-line');
+  let delay = 400;
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      observer.unobserve(entry.target);
+      lines.forEach((line, i) => {
+        setTimeout(() => line.classList.add('visible'), delay + i * 220);
+      });
+    });
+  }, { threshold: 0.3 });
+  const terminal = document.querySelector('.terminal-window');
+  if (terminal) observer.observe(terminal);
+})();
+
+// ---- Close mobile nav on link click ----
+document.querySelectorAll('.nav-links a').forEach(a => {
+  a.addEventListener('click', () => {
+    document.querySelector('.nav-links').classList.remove('open');
+  });
+});
+</script>
+
+</body>
+</html>
