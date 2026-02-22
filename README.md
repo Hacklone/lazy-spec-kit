@@ -1,8 +1,22 @@
-# LazySpecKit ⚡
+<p align="center">
+  <img src="media/logo.webp" alt="LazySpecKit" width="200">
+</p>
 
-**SpecKit without babysitting.**
+<h1 align="center">LazySpecKit ⚡</h1>
 
-Write your spec. Answer clarification questions. Everything else runs automatically.
+<p align="center">
+  <strong>SpecKit without babysitting.</strong><br>
+  Write your spec. Answer clarification questions. Everything else runs automatically.
+</p>
+
+<p align="center">
+  <a href="#install"><img src="https://img.shields.io/badge/Install-blue?style=flat-square" alt="Install"></a>
+  <a href="#quick-start"><img src="https://img.shields.io/badge/Quick%20Start-blue?style=flat-square" alt="Quick Start"></a>
+  <a href="https://hacklone.github.io/lazy-spec-kit/"><img src="https://img.shields.io/badge/Docs-blue?style=flat-square" alt="Documentation"></a>
+  <a href="https://github.com/Hacklone/lazy-spec-kit/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="MIT License"></a>
+</p>
+
+---
 
 LazySpecKit wraps [GitHub SpecKit](https://github.com/github/spec-kit) with a single command that orchestrates the entire workflow — from constitution setup through implementation and validation — so you can focus on *what* to build, not *how* to drive the tool.
 
