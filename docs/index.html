@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LazySpecKit — SpecKit without babysitting</title>
-  <meta name="description" content="Write your spec. Answer questions. Everything else runs automatically. LazySpecKit orchestrates GitHub SpecKit end-to-end.">
+  <title>LazySpecKit — SpecKit without babysitting + multi-agent review</title>
+  <meta name="description" content="Write your spec. Answer questions. LazySpecKit orchestrates GitHub SpecKit end-to-end, then four AI agents review and auto-fix your code from different perspectives.">
   <meta name="theme-color" content="#0ff0fc">
   <meta property="og:title" content="LazySpecKit ⚡">
-  <meta property="og:description" content="SpecKit without babysitting. One command to spec, plan, implement, and validate.">
+  <meta property="og:description" content="SpecKit without babysitting. One command to spec, plan, implement, validate — then four AI agents review and refine the result.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://hacklone.github.io/lazy-spec-kit/">
   <meta property="og:image" content="https://hacklone.github.io/lazy-spec-kit/og-image.png">
@@ -697,6 +697,7 @@
       <li><a href="#install">Install</a></li>
       <li><a href="#quick-start">Quick Start</a></li>
       <li><a href="#how-it-works">How It Works</a></li>
+      <li><a href="#review-refine">Review & Refine</a></li>
       <li><a href="#cli">CLI</a></li>
       <li><a href="#faq">FAQ</a></li>
       <li><a href="https://github.com/Hacklone/lazy-spec-kit">GitHub ↗</a></li>
@@ -710,7 +711,7 @@
     <img src="logo.webp" alt="LazySpecKit logo" class="hero-logo">
     <div class="hero-badge"><span class="dot"></span> Open source &middot; MIT License</div>
     <h1>SpecKit without<br><span class="accent">babysitting.</span></h1>
-    <p class="subtitle">Write your spec. Answer clarification questions. Everything else — planning, implementation, validation — runs automatically.</p>
+    <p class="subtitle">Write your spec. Answer clarification questions. Everything else — planning, implementation, validation, and a <strong style="color:var(--text)">multi-agent review that fixes what it finds</strong> — runs automatically.</p>
     <div class="hero-actions">
       <a href="#install" class="btn btn-primary">Get Started</a>
       <a href="https://github.com/Hacklone/lazy-spec-kit" class="btn btn-secondary">View on GitHub</a>
@@ -767,7 +768,7 @@
       <div class="card">
         <div class="card-icon">⚡</div>
         <h3>LazySpecKit Adds</h3>
-        <p>Full automation. One command runs every phase, pausing only for clarification.</p>
+        <p>Full automation plus a <strong>multi-agent review & refine</strong> phase. Four AI agents audit your code from different perspectives and auto-fix issues.</p>
       </div>
     </div>
   </div>
@@ -829,7 +830,16 @@
       <pre><span class="cmd">/LazySpecKit</span> <span class="string">Add OAuth login with GitHub and Google. Store users in Postgres. Add tests.</span></pre>
     </div>
 
-    <p style="color: var(--text-muted); font-size: .9rem; margin-top: 1rem;">That's it. LazySpecKit takes over from there. ☕</p>
+    <p style="margin: 1.5rem 0 .75rem; font-weight: 600;">Skip the review phase if you want:</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>AI Prompt — review disabled</span>
+      </div>
+      <pre><span class="cmd">/LazySpecKit</span> <span class="flag">--review=off</span> <span class="string">Add OAuth login with GitHub and Google.</span></pre>
+    </div>
+
+    <p style="color: var(--text-muted); font-size: .9rem; margin-top: 1rem;">That's it. LazySpecKit takes over — implementation, validation, and (by default) a multi-agent review that fixes issues automatically. ☕</p>
   </div>
 </section>
 
@@ -881,7 +891,103 @@
         <h3>Validate <span class="badge-auto">automatic</span></h3>
         <p>Detects and runs lint, typecheck, tests, and build. Reports results.</p>
       </div>
+      <div class="timeline-step">
+        <div class="step-label">Phase 8</div>
+        <h3>Review & Refine <span class="badge-auto">automatic</span></h3>
+        <p>Four AI agents — architecture, code quality, spec compliance, tests — review the code from different perspectives and <strong>auto-fix</strong> Critical/High findings. Up to 3 loops until clean.</p>
+      </div>
+      <div class="timeline-step">
+        <div class="step-label">Phase 9</div>
+        <h3>Final Validation <span class="badge-auto">automatic</span></h3>
+        <p>Full validation suite re-runs to guarantee everything is green before completion. No broken code ships.</p>
+      </div>
     </div>
+  </div>
+</section>
+
+<!-- ==================== REVIEW & REFINE ==================== -->
+<section id="review-refine">
+  <div class="container">
+    <p class="section-label">Beyond SpecKit</p>
+    <h2 class="section-title">Multi-Agent Review & Refine</h2>
+    <p class="section-desc">SpecKit stops after implementation and validation. <strong style="color:var(--text)">LazySpecKit keeps going.</strong> Four independent AI agents — each with a different perspective — review your code <em>and fix what they find</em>.</p>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-icon">🏗️</div>
+        <h3>Architecture Reviewer</h3>
+        <p>Evaluates structural decisions, separation of concerns, dependency direction, and abstraction boundaries.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">✨</div>
+        <h3>Code Quality Reviewer</h3>
+        <p>Checks readability, idiomatic patterns, error handling, duplication, and engineering best practices.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📋</div>
+        <h3>Spec Compliance Reviewer</h3>
+        <p>Verifies every requirement from the approved spec is implemented correctly and completely.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🧪</div>
+        <h3>Test Reviewer</h3>
+        <p>Audits test coverage, edge cases, test quality, reliability, and identifies missing scenarios.</p>
+      </div>
+    </div>
+
+    <div style="margin-top: 3rem;">
+      <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1.25rem;">Review, fix, verify — automatically</h3>
+      <div class="timeline" style="margin-bottom: 2rem;">
+        <div class="timeline-step">
+          <div class="step-label">Step 1</div>
+          <h3>Analyze</h3>
+          <p>All four agents review the implemented changes from their perspective. Findings are categorized: Critical / High / Medium / Low.</p>
+        </div>
+        <div class="timeline-step">
+          <div class="step-label">Step 2</div>
+          <h3>Auto-fix</h3>
+          <p>LazySpecKit automatically fixes all Critical and High issues, plus low-effort Medium ones. Not just a report — actual code changes.</p>
+        </div>
+        <div class="timeline-step">
+          <div class="step-label">Step 3</div>
+          <h3>Re-validate</h3>
+          <p>Lint, typecheck, tests, and build re-run to confirm the fixes didn't break anything.</p>
+        </div>
+        <div class="timeline-step">
+          <div class="step-label">Step 4</div>
+          <h3>Iterate</h3>
+          <p>Agents review again — up to 3 loops — until no Critical or High findings remain. Then a final validation gate confirms green.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="comparison">
+      <div class="comparison-col">
+        <h3>🔧 SpecKit alone</h3>
+        <ul>
+          <li>Spec → Plan → Tasks → Implement → Validate</li>
+          <li>Manual slash commands between each phase</li>
+          <li>No post-implementation review</li>
+          <li>You review the code yourself</li>
+          <li>Hope for the best after validation passes</li>
+        </ul>
+      </div>
+      <div class="comparison-col highlight">
+        <h3>⚡ LazySpecKit</h3>
+        <ul>
+          <li>Everything SpecKit does, fully automated</li>
+          <li>One command — answer questions once, done</li>
+          <li>Four AI agents review from different perspectives</li>
+          <li>Issues are auto-fixed, not just reported</li>
+          <li>Iterative convergence: review → fix → validate loops</li>
+          <li>Final validation gate ensures green before completion</li>
+        </ul>
+      </div>
+    </div>
+
+    <p style="text-align: center; color: var(--text-muted); font-size: .9rem; margin-top: 2rem;">
+      Review & Refine is <strong style="color: var(--text);">on by default</strong>. Disable with <code style="font-family: var(--font-mono); font-size: .82rem; color: var(--accent);">--review=off</code> if you just want the SpecKit automation.
+    </p>
   </div>
 </section>
 
@@ -1030,6 +1136,18 @@
         What happens if SpecKit fails during upgrade?
       </div>
       <div class="faq-a">SpecKit failures are non-fatal during upgrade. LazySpecKit always installs the latest prompts regardless. Your customizations are backed up and restored even on failure.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        What is Review & Refine? Isn't LazySpecKit just a SpecKit wrapper?
+      </div>
+      <div class="faq-a">No — LazySpecKit adds a full post-implementation phase that SpecKit doesn't have. After implementation and validation, four independent AI agents (architecture, code quality, spec compliance, tests) review the code from different perspectives, <strong>automatically fix</strong> Critical and High issues, re-validate, and loop until clean. It's review <em>and</em> refinement, not just reporting.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        Can I disable the Review & Refine phase?
+      </div>
+      <div class="faq-a">Yes. Pass <code>--review=off</code> before your spec text: <code>/LazySpecKit --review=off &lt;your spec&gt;</code>. This skips the multi-agent review entirely and stops after implementation + validation.</div>
     </div>
     <div class="faq-item">
       <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">

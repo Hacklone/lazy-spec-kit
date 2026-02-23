@@ -5,8 +5,8 @@
 <h1 align="center">LazySpecKit ⚡</h1>
 
 <p align="center">
-  <strong>SpecKit without babysitting.</strong><br>
-  Write your spec. Answer clarification questions. Everything else runs automatically.
+  <strong>SpecKit without babysitting — plus multi-agent review & auto-fix.</strong><br>
+  Write your spec. Answer clarification questions. Everything else — including a multi-perspective review that finds AND fixes issues — runs automatically.
 </p>
 
 <p align="center">
@@ -18,13 +18,13 @@
 
 ---
 
-LazySpecKit wraps [GitHub SpecKit](https://github.com/github/spec-kit) with a single command that orchestrates the entire workflow — from constitution setup through implementation and validation — so you can focus on *what* to build, not *how* to drive the tool.
+LazySpecKit goes beyond wrapping [GitHub SpecKit](https://github.com/github/spec-kit). It orchestrates the entire workflow — from constitution setup through implementation and validation — and then launches its own **Review & Refine** phase: four specialized AI agents, each approaching the code from a different perspective (architecture, code quality, spec compliance, tests), that don't just *review* but **automatically fix** the issues they find. You focus on *what* to build; LazySpecKit handles *how* and iterates until the result is solid.
 
 ```
 /LazySpecKit Add OAuth login with GitHub and Google. Store users in Postgres. Add tests.
 ```
 
-> Sit back, enjoy a coffee ☕, and let LazySpecKit handle the rest.
+> Sit back, enjoy a coffee ☕, and let LazySpecKit handle the rest — including a multi-agent review that fixes what it finds.
 
 ---
 
@@ -33,6 +33,7 @@ LazySpecKit wraps [GitHub SpecKit](https://github.com/github/spec-kit) with a si
 - [Install](#install)
 - [Quick Start](#quick-start)
 - [How It Works](#how-it-works)
+- [Review & Refine — What Makes LazySpecKit Different](#review--refine--what-makes-lazyspeckit-different)
 - [CLI Reference](#cli-reference)
 - [Supported AI Agents](#supported-ai-agents)
 - [Environment Variables](#environment-variables)
@@ -73,7 +74,13 @@ lazyspeckit init --here --ai claude
 /LazySpecKit <your spec here>
 ```
 
-That's it. LazySpecKit takes over from there.
+Optionally disable the post-implementation multi-agent review & refinement:
+
+```
+/LazySpecKit --review=off <your spec here>
+```
+
+That's it. LazySpecKit takes over from there — implementation, validation, and (by default) a multi-agent review that fixes issues automatically.
 
 ---
 
@@ -91,10 +98,60 @@ When you run `/LazySpecKit <spec>`, it orchestrates the full SpecKit lifecycle a
 | **Quality Gates** | Runs `/speckit.checklist` + `/speckit.analyze`, auto-fixes spec issues | No |
 | **Implement** | Executes tasks in a fresh session | No |
 | **Validate** | Runs detected lint / typecheck / tests / build | No |
+| **Review & Refine** | Four AI agents review from different perspectives — architecture, quality, spec compliance, tests — and **auto-fix** findings (up to 3 loops) | No |
+| **Final Validation** | Full validation suite re-run to guarantee green before completion | No |
 
-**You only interact during Constitution (if missing) and Clarify.** Everything else is fully automated.
+**You only interact during Constitution (if missing) and Clarify.** Everything else — including multi-agent review and automatic code refinement — is fully automated.
 
 If something goes wrong, LazySpecKit retries up to 3 times, then stops with a clear blocker message — it never silently continues in a broken state.
+
+---
+
+## Review & Refine — What Makes LazySpecKit Different
+
+SpecKit stops after implementation and validation. **LazySpecKit keeps going.**
+
+This isn't a single-pass code review. After SpecKit's work is done, LazySpecKit spawns **four independent AI agents** — each with fresh context and a distinct perspective — that **review the code AND fix what they find**:
+
+| Agent | Perspective | What it catches & fixes |
+|-------|-------------|------------------------|
+| **Architecture Reviewer** | System design | Poor structure, tangled dependencies, wrong abstraction boundaries |
+| **Code Quality Reviewer** | Engineering craft | Bad idioms, missing error handling, duplication, readability issues |
+| **Spec Compliance Reviewer** | Requirements | Missing or incorrectly implemented spec requirements |
+| **Test Reviewer** | QA | Gaps in coverage, fragile tests, missing edge cases |
+
+### Review, fix, verify — automatically
+
+1. All four agents analyze the changes from their perspective and produce findings (Critical / High / Medium / Low).
+2. LazySpecKit **automatically fixes** all Critical and High issues, plus low-effort Medium ones — this is refinement, not just reporting.
+3. Validation (lint / typecheck / tests / build) re-runs to confirm the fixes didn't break anything.
+4. The agents review again — up to **3 loops total** — until no Critical or High findings remain.
+5. A **final validation gate** ensures everything is green before completion.
+
+If a finding can't be resolved safely, LazySpecKit stops and tells you exactly what needs attention — it never ships broken code.
+
+### Why this matters
+
+- **Multiple perspectives** — Four agents catch different classes of problems that a single reviewer would miss.
+- **Not just review, but refinement** — Issues are fixed in place, not dumped on you as a TODO list.
+- **Iterative convergence** — Fix loops continue until the agents agree the code is clean.
+- **Safe by design** — Every fix is re-validated; regressions are caught and reverted.
+
+### Control it
+
+Review & Refine is **enabled by default**. To skip it:
+
+```
+/LazySpecKit --review=off <your spec>
+```
+
+To explicitly enable (the default):
+
+```
+/LazySpecKit --review=on <your spec>
+```
+
+> **Bottom line:** With plain SpecKit, you implement and hope for the best. With LazySpecKit, four agents — each with a different perspective — review your code, fix what's wrong, and verify the result. You get reviewed, refined, validated code without lifting a finger.
 
 ---
 
