@@ -5,8 +5,8 @@
 <h1 align="center">LazySpecKit ⚡</h1>
 
 <p align="center">
-  <strong>SpecKit without babysitting — plus multi-agent review & auto-fix.</strong><br>
-  Write your spec. Answer clarification questions. Everything else — including a multi-perspective review that finds AND fixes issues — runs automatically.
+  <strong>SpecKit without babysitting — with auto-clarify and multi-agent review & auto-fix.</strong><br>
+  Write your spec. With <code>--auto-clarify</code>, you may not even need to answer questions. Everything else — including a multi-perspective review that finds AND fixes issues — runs automatically.
 </p>
 
 <p align="center">
@@ -18,10 +18,16 @@
 
 ---
 
-LazySpecKit goes beyond wrapping [GitHub SpecKit](https://github.com/github/spec-kit). It orchestrates the entire workflow — from constitution setup through implementation and validation — and then launches its own **Review & Refine** phase: four specialized AI agents, each approaching the code from a different perspective (architecture, code quality, spec compliance, tests), that don't just *review* but **automatically fix** the issues they find. You focus on *what* to build; LazySpecKit handles *how* and iterates until the result is solid.
+LazySpecKit goes beyond wrapping [GitHub SpecKit](https://github.com/github/spec-kit). It orchestrates the entire workflow — from constitution setup through implementation and validation — and then launches its own **Review & Refine** phase: four specialized AI agents, each approaching the code from a different perspective (architecture, code quality, spec compliance, tests), that don't just *review* but **automatically fix** the issues they find. Add `--auto-clarify` and the agent even answers its own clarification questions when it's confident — making this the ultimate hands-off, spec-driven development workflow.
 
 ```
 /LazySpecKit Add OAuth login with GitHub and Google. Store users in Postgres. Add tests.
+```
+
+Want the fully hands-off experience? Add `--auto-clarify`:
+
+```
+/LazySpecKit --auto-clarify Add OAuth login with GitHub and Google. Store users in Postgres. Add tests.
 ```
 
 > Sit back, enjoy a coffee ☕, and let LazySpecKit handle the rest — including a multi-agent review that fixes what it finds.
@@ -33,6 +39,7 @@ LazySpecKit goes beyond wrapping [GitHub SpecKit](https://github.com/github/spec
 - [Install](#install)
 - [Quick Start](#quick-start)
 - [How It Works](#how-it-works)
+- [Auto-Clarify — True Hands-Off Mode](#auto-clarify--true-hands-off-mode)
 - [Review & Refine — What Makes LazySpecKit Different](#review--refine--what-makes-lazyspeckit-different)
 - [CLI Reference](#cli-reference)
 - [Supported AI Agents](#supported-ai-agents)
@@ -74,10 +81,22 @@ lazyspeckit init --here --ai claude
 /LazySpecKit <your spec here>
 ```
 
+For the ultimate hands-off experience — auto-answer clarification questions + multi-agent review:
+
+```
+/LazySpecKit --auto-clarify <your spec here>
+```
+
 Optionally disable the post-implementation multi-agent review & refinement:
 
 ```
 /LazySpecKit --review=off <your spec here>
+```
+
+Combine both for maximum automation, no review:
+
+```
+/LazySpecKit --auto-clarify --review=off <your spec here>
 ```
 
 That's it. LazySpecKit takes over from there — implementation, validation, and (by default) a multi-agent review that fixes issues automatically.
@@ -92,7 +111,7 @@ When you run `/LazySpecKit <spec>`, it orchestrates the full SpecKit lifecycle a
 |-------|-------------|-------------------|
 | **Constitution** | Checks for an existing constitution; asks you to provide one if missing | Only if missing |
 | **Specify** | Runs `/speckit.specify` with your spec text | No |
-| **Clarify** | Presents clarification questions | **Yes — answer once** |
+| **Clarify** | Presents clarification questions | **Yes — answer once** (or use `--auto-clarify`) |
 | **Plan** | Generates implementation plan | No |
 | **Tasks** | Breaks plan into sequential tasks | No |
 | **Quality Gates** | Runs `/speckit.checklist` + `/speckit.analyze`, auto-fixes spec issues | No |
@@ -101,9 +120,55 @@ When you run `/LazySpecKit <spec>`, it orchestrates the full SpecKit lifecycle a
 | **Review & Refine** | Four AI agents review from different perspectives — architecture, quality, spec compliance, tests — and **auto-fix** findings (up to 3 loops) | No |
 | **Final Validation** | Full validation suite re-run to guarantee green before completion | No |
 
-**You only interact during Constitution (if missing) and Clarify.** Everything else — including multi-agent review and automatic code refinement — is fully automated.
+**You only interact during Constitution (if missing) and Clarify.** With `--auto-clarify`, even Clarify becomes automatic for high/medium-confidence questions — you're only asked about genuinely ambiguous items. Everything else — including multi-agent review and automatic code refinement — is fully automated.
 
 If something goes wrong, LazySpecKit retries up to 3 times, then stops with a clear blocker message — it never silently continues in a broken state.
+
+---
+
+## Auto-Clarify — True Hands-Off Mode
+
+SpecKit's clarification phase normally requires you to answer questions before proceeding. With `--auto-clarify`, **LazySpecKit answers them for you.**
+
+```
+/LazySpecKit --auto-clarify Add a REST API for user management with CRUD endpoints and tests.
+```
+
+### How it works
+
+Every clarification question comes with a **Recommendation** and a **Confidence** level (High / Medium / Low):
+
+- **High & Medium confidence** — LazySpecKit auto-selects the recommended answer and keeps moving. No pause.
+- **Low confidence** — The question is genuinely ambiguous. Only these are presented to you, in a structured format, for a single quick reply.
+
+If every question is High or Medium confidence, **you never interact at all.** Spec in, finished code out.
+
+### Structured answers
+
+Whether auto-clarified or manual, all clarification questions use a clean A/B/C/D format with explicit recommendations:
+
+```
+1) Should auth tokens be JWT or opaque?
+   A) JWT
+   B) Opaque tokens
+   C) Both (configurable)
+   D) Other: <free text>
+
+   Recommendation: A — JWT is standard for stateless APIs
+   Confidence: High
+```
+
+You can always answer manually in one message: `1: A  2: B  3: Other: <text>`
+
+### When to use it
+
+| Scenario | Recommended command |
+|----------|--------------------|
+| **Maximum hands-off** — trust the agent's judgment | `/LazySpecKit --auto-clarify <spec>` |
+| **Full control** — answer every question yourself | `/LazySpecKit <spec>` |
+| **Hands-off, skip review** — fastest possible run | `/LazySpecKit --auto-clarify --review=off <spec>` |
+
+> **Bottom line:** `--auto-clarify` makes LazySpecKit the ultimate hands-off workflow. Write your spec, walk away, come back to reviewed and refined code.
 
 ---
 
@@ -325,6 +390,14 @@ Yes. `lazyspeckit init` and `lazyspeckit upgrade` install prompts for both agent
 ### Does LazySpecKit modify my source code?
 
 The CLI only manages SpecKit configuration files and LazySpecKit prompt files. It never touches your source code. The `/LazySpecKit` prompt *does* generate and modify source code as part of the SpecKit implementation phase — that's the whole point.
+
+### What does `--auto-clarify` do?
+
+It lets the agent auto-select recommended answers for clarification questions when it's confident (High or Medium). Only genuinely ambiguous (Low confidence) questions are presented to you. If all questions are High/Medium, you never interact at all — spec in, finished code out.
+
+### Is `--auto-clarify` safe?
+
+Yes. Each recommendation includes a confidence level. High-confidence answers follow clear best practices or strong repo signals. Medium answers reflect reasonable trade-offs. Only Low-confidence (genuinely ambiguous) items are escalated to you. You can always override by answering manually instead.
 
 ### What does LazySpecKit respect from my repo?
 

@@ -697,6 +697,7 @@
       <li><a href="#install">Install</a></li>
       <li><a href="#quick-start">Quick Start</a></li>
       <li><a href="#how-it-works">How It Works</a></li>
+      <li><a href="#auto-clarify">Auto-Clarify</a></li>
       <li><a href="#review-refine">Review & Refine</a></li>
       <li><a href="#cli">CLI</a></li>
       <li><a href="#faq">FAQ</a></li>
@@ -711,7 +712,7 @@
     <img src="logo.webp" alt="LazySpecKit logo" class="hero-logo">
     <div class="hero-badge"><span class="dot"></span> Open source &middot; MIT License</div>
     <h1>SpecKit without<br><span class="accent">babysitting.</span></h1>
-    <p class="subtitle">Write your spec. Answer clarification questions. Everything else — planning, implementation, validation, and a <strong style="color:var(--text)">multi-agent review that fixes what it finds</strong> — runs automatically.</p>
+    <p class="subtitle">Write your spec. With <code style="font-family:var(--font-mono); font-size:.9em; color:var(--accent)">--auto-clarify</code>, you may not even need to answer questions. Everything else — planning, implementation, validation, and a <strong style="color:var(--text)">multi-agent review that fixes what it finds</strong> — runs automatically.</p>
     <div class="hero-actions">
       <a href="#install" class="btn btn-primary">Get Started</a>
       <a href="https://github.com/Hacklone/lazy-spec-kit" class="btn btn-secondary">View on GitHub</a>
@@ -830,6 +831,19 @@
       <pre><span class="cmd">/LazySpecKit</span> <span class="string">Add OAuth login with GitHub and Google. Store users in Postgres. Add tests.</span></pre>
     </div>
 
+    <p style="margin: 1.5rem 0 .75rem; font-weight: 600;">For the fully hands-off experience — auto-answer clarification questions:</p>
+
+    <div class="code-block">
+      <div class="code-block-header">
+        <span>AI Prompt — auto-clarify (recommended)</span>
+        <button class="copy-btn" data-copy="/LazySpecKit --auto-clarify Add OAuth login with GitHub and Google. Store users in Postgres. Add tests." aria-label="Copy prompt">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          Copy
+        </button>
+      </div>
+      <pre><span class="cmd">/LazySpecKit</span> <span class="flag">--auto-clarify</span> <span class="string">Add OAuth login with GitHub and Google. Store users in Postgres. Add tests.</span></pre>
+    </div>
+
     <p style="margin: 1.5rem 0 .75rem; font-weight: 600;">Skip the review phase if you want:</p>
 
     <div class="code-block">
@@ -839,7 +853,7 @@
       <pre><span class="cmd">/LazySpecKit</span> <span class="flag">--review=off</span> <span class="string">Add OAuth login with GitHub and Google.</span></pre>
     </div>
 
-    <p style="color: var(--text-muted); font-size: .9rem; margin-top: 1rem;">That's it. LazySpecKit takes over — implementation, validation, and (by default) a multi-agent review that fixes issues automatically. ☕</p>
+    <p style="color: var(--text-muted); font-size: .9rem; margin-top: 1rem;">That's it. LazySpecKit takes over — implementation, validation, and (by default) a multi-agent review that fixes issues automatically. With <code style="font-family:var(--font-mono); font-size:.82rem; color:var(--accent)">--auto-clarify</code>, you may not even need to answer a single question. ☕</p>
   </div>
 </section>
 
@@ -848,7 +862,7 @@
   <div class="container">
     <p class="section-label">Under the hood</p>
     <h2 class="section-title">How It Works</h2>
-    <p class="section-desc">LazySpecKit orchestrates the full SpecKit lifecycle. You interact at most twice — everything else runs automatically.</p>
+    <p class="section-desc">LazySpecKit orchestrates the full SpecKit lifecycle. You interact at most twice — or with <code>--auto-clarify</code>, potentially not at all. Everything else runs automatically.</p>
 
     <div class="timeline">
       <div class="timeline-step">
@@ -864,7 +878,7 @@
       <div class="timeline-step">
         <div class="step-label">Phase 2</div>
         <h3>Clarify <span class="badge-pause">your input</span></h3>
-        <p>Presents clarification questions. Answer once, then sit back.</p>
+        <p>Presents clarification questions. Answer once, then sit back. With <code>--auto-clarify</code>, high/medium-confidence questions are answered automatically — you're only asked about genuinely ambiguous items (if any).</p>
       </div>
       <div class="timeline-step">
         <div class="step-label">Phase 3</div>
@@ -902,6 +916,94 @@
         <p>Full validation suite re-runs to guarantee everything is green before completion. No broken code ships.</p>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- ==================== AUTO-CLARIFY ==================== -->
+<section id="auto-clarify">
+  <div class="container">
+    <p class="section-label">Killer feature</p>
+    <h2 class="section-title">Auto-Clarify — True Hands-Off Mode</h2>
+    <p class="section-desc">SpecKit's clarification phase normally requires your input. With <code style="font-family:var(--font-mono); font-size:.9em; color:var(--accent)">--auto-clarify</code>, <strong style="color:var(--text)">the agent answers for you.</strong></p>
+
+    <div class="code-block" style="max-width: 680px;">
+      <div class="code-block-header">
+        <span>AI Prompt — full autopilot</span>
+        <button class="copy-btn" data-copy="/LazySpecKit --auto-clarify Add a REST API with CRUD endpoints and tests." aria-label="Copy command">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          Copy
+        </button>
+      </div>
+      <pre><span class="cmd">/LazySpecKit</span> <span class="flag">--auto-clarify</span> <span class="string">Add a REST API with CRUD endpoints and tests.</span></pre>
+    </div>
+
+    <div class="cards" style="margin-top: 2.5rem;">
+      <div class="card">
+        <div class="card-icon">🟢</div>
+        <h3>High confidence</h3>
+        <p>Clear best practice or strong repo signal. Auto-selected — no pause.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🟡</div>
+        <h3>Medium confidence</h3>
+        <p>Trade-offs exist but a reasonable default is available. Auto-selected — no pause.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔴</div>
+        <h3>Low confidence</h3>
+        <p>Genuinely ambiguous — only these are presented to you in a structured A/B/C/D format for a quick reply.</p>
+      </div>
+    </div>
+
+    <div style="margin-top: 3rem;">
+      <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1.25rem;">How it works</h3>
+      <div class="timeline" style="margin-bottom: 2rem;">
+        <div class="timeline-step">
+          <div class="step-label">Step 1</div>
+          <h3>Structured questions</h3>
+          <p>SpecKit's clarification questions are normalized into A/B/C/D options. Each gets an explicit <strong>Recommendation</strong> and <strong>Confidence</strong> level.</p>
+        </div>
+        <div class="timeline-step">
+          <div class="step-label">Step 2</div>
+          <h3>Auto-select confident answers</h3>
+          <p>High and Medium confidence recommendations are auto-selected. No user interaction needed.</p>
+        </div>
+        <div class="timeline-step">
+          <div class="step-label">Step 3</div>
+          <h3>Ask only when unsure</h3>
+          <p>Only Low-confidence questions (if any) are presented to you. If everything is High/Medium — you never see a single question.</p>
+        </div>
+        <div class="timeline-step">
+          <div class="step-label">Step 4</div>
+          <h3>Continue automatically</h3>
+          <p>Planning, implementation, validation, and review proceed without further interaction.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="comparison">
+      <div class="comparison-col">
+        <h3>📝 Without auto-clarify</h3>
+        <ul>
+          <li>All clarification questions presented to you</li>
+          <li>You answer once in a structured format</li>
+          <li>Still just one interaction — but you need to be present</li>
+        </ul>
+      </div>
+      <div class="comparison-col highlight">
+        <h3>⚡ With --auto-clarify</h3>
+        <ul>
+          <li>Confident answers auto-selected by the agent</li>
+          <li>Only genuinely ambiguous items escalated to you</li>
+          <li>Often zero interaction — spec in, finished code out</li>
+          <li>The ultimate hands-off spec-driven workflow</li>
+        </ul>
+      </div>
+    </div>
+
+    <p style="text-align: center; color: var(--text-muted); font-size: .9rem; margin-top: 2rem;">
+      <code style="font-family: var(--font-mono); font-size: .82rem; color: var(--accent);">--auto-clarify</code> is <strong style="color: var(--text);">off by default</strong>. Enable it when you want the fully autonomous experience.
+    </p>
   </div>
 </section>
 
@@ -976,7 +1078,8 @@
         <h3>⚡ LazySpecKit</h3>
         <ul>
           <li>Everything SpecKit does, fully automated</li>
-          <li>One command — answer questions once, done</li>
+          <li>One command — answer questions once (or use auto-clarify), done</li>
+          <li>Auto-clarify: agent answers its own questions when confident</li>
           <li>Four AI agents review from different perspectives</li>
           <li>Issues are auto-fixed, not just reported</li>
           <li>Iterative convergence: review → fix → validate loops</li>
@@ -1148,6 +1251,24 @@
         Can I disable the Review & Refine phase?
       </div>
       <div class="faq-a">Yes. Pass <code>--review=off</code> before your spec text: <code>/LazySpecKit --review=off &lt;your spec&gt;</code>. This skips the multi-agent review entirely and stops after implementation + validation.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        What does <code>--auto-clarify</code> do?
+      </div>
+      <div class="faq-a">It lets the agent auto-select recommended answers for clarification questions when it's confident (High or Medium). Only genuinely ambiguous (Low confidence) questions are presented to you. If all questions are High/Medium, <strong>you never interact at all</strong> — spec in, finished code out.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        Is <code>--auto-clarify</code> safe? Will it make bad decisions?
+      </div>
+      <div class="faq-a">Each recommendation includes an explicit confidence level. High-confidence answers follow clear best practices or strong repo signals. Medium answers reflect reasonable trade-offs. The agent only auto-selects when it's confident — genuinely ambiguous items are always escalated to you.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        Can I combine <code>--auto-clarify</code> with <code>--review=off</code>?
+      </div>
+      <div class="faq-a">Yes: <code>/LazySpecKit --auto-clarify --review=off &lt;spec&gt;</code>. This gives you the fastest possible run — auto-answered clarification, no post-implementation review. Great for prototyping or when you plan to review manually.</div>
     </div>
     <div class="faq-item">
       <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
