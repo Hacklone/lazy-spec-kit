@@ -404,6 +404,35 @@ Yes. Each recommendation includes a confidence level. High-confidence answers fo
 
 LazySpecKit respects `agents.md` governance files. A root-level `agents.md` applies to the entire repo; nested ones apply to their directory and subdirectories. These rules are enforced across all phases.
 
+### How is LazySpecKit different from OpenSpec?
+
+Both tools care about spec-driven development — but they solve different problems.
+
+**OpenSpec** focuses on structured, versioned specification workflows. It helps teams define, validate, and manage changes through explicit spec artifacts and proposal flows.
+
+**LazySpecKit** focuses on automated execution and convergence to green.
+
+Here is the practical difference:
+
+| Feature | OpenSpec | LazySpecKit |
+|----------|----------|-------------|
+| Spec management & proposal workflow | ✔️ | Inherits from SpecKit |
+| Structured validation of specs | ✔️ | ✔️ (via `/speckit.analyze` + auto-fix) |
+| Fully automated end-to-end lifecycle | ❌ | ✔️ |
+| Deterministic phase gates (must pass before next phase) | ❌ | ✔️ |
+| Auto-clarify with recommendation + confidence | ❌ | ✔️ |
+| Hands-off mode (`--auto-clarify`) | ❌ | ✔️ |
+| Multi-agent autonomous review loop | ❌ | ✔️ |
+| Auto-fix review findings | ❌ | ✔️ |
+| Guaranteed final validation before completion | ❌ | ✔️ |
+
+**In short:**
+
+- **OpenSpec** is about making specs explicit and collaborative.
+- **LazySpecKit** is about taking a spec and autonomously driving it to validated, reviewed, green code — without babysitting.
+
+They are complementary philosophies, but LazySpecKit’s differentiator is automation depth and post-implementation refinement.
+
 ---
 
 ## Uninstall

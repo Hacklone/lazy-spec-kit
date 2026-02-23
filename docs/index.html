@@ -222,12 +222,14 @@
       letter-spacing: .12em;
       color: var(--accent);
       margin-bottom: .75rem;
+      text-align: left;
     }
     .section-title {
       font-size: clamp(1.6rem, 3.5vw, 2.2rem);
       font-weight: 700;
       letter-spacing: -0.02em;
       margin-bottom: 1rem;
+      text-align: left;
     }
     .section-desc {
       color: var(--text-muted);
@@ -629,8 +631,53 @@
       line-height: 1.65;
     }
     .faq-item.open .faq-a {
-      max-height: 300px;
+      max-height: 1200px;
       padding-top: .75rem;
+    }
+
+    /* ============ Comparison Table (used in FAQ) ============ */
+    .compare-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      font-size: .82rem;
+    }
+    .compare-table th {
+      background: var(--bg-hover);
+      padding: .75rem 1rem;
+      text-align: left;
+      font-weight: 600;
+      font-size: .78rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .compare-table th:first-child { width: 50%; }
+    .compare-table td {
+      padding: .6rem 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+    }
+    .compare-table tr:last-child td { border-bottom: none; }
+    .compare-table td:first-child {
+      color: var(--text);
+      font-weight: 500;
+    }
+    .compare-table .yes {
+      color: var(--accent3);
+      font-weight: 600;
+    }
+    .compare-table .no {
+      color: var(--text-dim);
+    }
+    .compare-table .partial {
+      color: var(--accent2);
+      font-size: .78rem;
     }
 
     /* ============ Troubleshooting ============ */
@@ -1275,6 +1322,41 @@
         What does LazySpecKit respect from my repo?
       </div>
       <div class="faq-a">LazySpecKit respects <code>agents.md</code> governance files. A root-level <code>agents.md</code> applies repo-wide; nested ones apply to their directory subtree. Rules are enforced across all phases.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        How is LazySpecKit different from OpenSpec?
+      </div>
+      <div class="faq-a">
+        <p style="margin-bottom: 1rem;">Both care about spec-driven development — but they solve different problems. <strong style="color: var(--text);">OpenSpec</strong> focuses on structured, versioned specification workflows. <strong style="color: var(--text);">LazySpecKit</strong> focuses on automated execution and convergence to green.</p>
+        <table class="compare-table" style="margin-bottom: 1rem;">
+          <thead>
+            <tr><th>Feature</th><th>OpenSpec</th><th>LazySpecKit</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Spec management &amp; proposal workflow</td><td class="yes">✔️</td><td class="partial">Inherits from SpecKit</td></tr>
+            <tr><td>Structured validation of specs</td><td class="yes">✔️</td><td class="yes">✔️ <span class="partial">via /speckit.analyze + auto-fix</span></td></tr>
+            <tr><td>Fully automated end-to-end lifecycle</td><td class="no">—</td><td class="yes">✔️</td></tr>
+            <tr><td>Deterministic phase gates</td><td class="no">—</td><td class="yes">✔️</td></tr>
+            <tr><td>Auto-clarify with confidence levels</td><td class="no">—</td><td class="yes">✔️</td></tr>
+            <tr><td>Hands-off mode (<code>--auto-clarify</code>)</td><td class="no">—</td><td class="yes">✔️</td></tr>
+            <tr><td>Multi-agent autonomous review loop</td><td class="no">—</td><td class="yes">✔️</td></tr>
+            <tr><td>Auto-fix review findings</td><td class="no">—</td><td class="yes">✔️</td></tr>
+            <tr><td>Guaranteed final validation</td><td class="no">—</td><td class="yes">✔️</td></tr>
+          </tbody>
+        </table>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem;">
+            <strong style="color: var(--accent2); display: block; margin-bottom: .35rem;">OpenSpec</strong>
+            Making specs explicit and collaborative. Structured proposal workflows, versioned spec artifacts, team-oriented change management.
+          </div>
+          <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem;">
+            <strong style="color: var(--accent); display: block; margin-bottom: .35rem;">LazySpecKit</strong>
+            Taking a spec and autonomously driving it to validated, reviewed, green code — without babysitting. Automation depth and post-implementation refinement.
+          </div>
+        </div>
+        <p>They are <strong style="color: var(--text);">complementary philosophies</strong>. OpenSpec excels at making specifications a first-class collaborative artifact. LazySpecKit's differentiator is <strong style="color: var(--text);">automation depth</strong> — from spec to reviewed, validated code with zero hand-holding.</p>
+      </div>
     </div>
   </div>
 </section>
