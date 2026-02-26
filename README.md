@@ -360,10 +360,10 @@ Both prompts are installed from the same source. If your repo has both `.vscode`
 
 ```bash
 # Install a specific version
-LAZYSPECKIT_REF=v0.6.1 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/v0.6.1/install.sh)"
+LAZYSPECKIT_REF=v0.6.2 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/v0.6.2/install.sh)"
 
 # Self-update to a specific version
-LAZYSPECKIT_REF=v0.6.1 lazyspeckit self-update
+LAZYSPECKIT_REF=v0.6.2 lazyspeckit self-update
 ```
 
 ---
