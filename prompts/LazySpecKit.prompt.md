@@ -448,13 +448,13 @@ Each reviewer MUST:
 
 ## Fix policy (bounded, deterministic)
 - You MUST fix ALL Critical and High findings.
-- Medium findings: fix only if low-effort and low-risk (no large refactors).
+- Medium findings: fix only if not high-effort (no large refactors).
 - Low findings: report only; do not change code just for Low.
 - Do NOT introduce new features or scope.
 - Do NOT perform aesthetic refactors, repo-wide formatting, or unrelated cleanup.
 
 ## Iteration limits
-- Run at most 3 review loops total.
+- Run at most 6 review loops total.
 - Loop structure:
   1) Collect reviewer findings
   2) Apply fixes (only within policy)
@@ -462,16 +462,16 @@ Each reviewer MUST:
   4) Re-run reviewers (next loop) only if Critical/High remained or new Critical/High introduced
 
 Stop early if:
-- No Critical/High findings remain, AND validation is green.
+- No Critical/High/Medium findings remain, AND validation is green.
 
-If still Critical/High after 3 loops:
+If still Critical/High/Medium after 6 loops:
 - Escalate using BLOCKED format with:
-  - remaining Critical/High items
+  - remaining Critical/High/Medium items
   - why they cannot be resolved safely within constraints
 
 ## Final safety gate (mandatory)
 
-After the last review loop (or after stopping early because no Critical/High remain):
+After the last review loop (or after stopping early because no Critical/High/Medium remain):
 
 - Run the full applicable validation suite again (lint/typecheck/tests/build).
 - If any validation fails, you MUST fix it and re-run until green (or escalate via BLOCKED format).
