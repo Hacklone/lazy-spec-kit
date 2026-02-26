@@ -27,10 +27,16 @@ if [[ -n "$outfile" ]]; then
     printf '%s\n' \
       '#!/usr/bin/env bash' \
       'target="${1:-$(pwd)}"' \
-      'mkdir -p "$target/.github/prompts" "$target/.claude/commands"' \
+      'mkdir -p "$target/.github/prompts" "$target/.claude/commands" "$target/.lazyspeckit/reviewers"' \
       'echo "LazySpecKit speckit prompt" > "$target/.github/prompts/LazySpecKit.prompt.md"' \
       'echo "LazySpecKit speckit prompt" > "$target/.claude/commands/LazySpecKit.md"' \
-      'echo "Prompts installed"' > "$outfile"
+      'for f in architecture.md code-quality.md spec-compliance.md test.md; do echo "reviewer $f" > "$target/.lazyspeckit/reviewers/$f"; done' \
+      'echo "Prompts installed"' \
+      'echo "Reviewer skill files installed"' > "$outfile"
+  elif [[ "$url" == *reviewers/*.md* ]]; then
+    local fname
+    fname="$(echo "$url" | sed 's/.*reviewers\///' | sed 's/?.*//')"
+    printf '%s\n' "---" "name: Reviewer $fname" "perspective: test perspective" "---" "Review instructions for $fname" > "$outfile"
   elif [[ "$url" == *lazyspeckit* ]]; then
     printf '%s\n' \
       '#!/usr/bin/env bash' \
@@ -1866,4 +1872,52 @@ S
   [ -f "$repo/.specify/templates/custom.md" ]
   [[ "$(cat "$repo/.specify/memory/constitution.md")" == "precious constitution" ]]
   [[ "$(cat "$repo/.specify/templates/custom.md")" == "precious template" ]]
+}
+
+# ============ Reviewer File Installation ============
+
+@test "cli: init installs reviewer skill files on disk" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+
+  run run_cli init --here --ai copilot
+  [ "$status" -eq 0 ]
+  [ -f "$repo/.lazyspeckit/reviewers/architecture.md" ]
+  [ -f "$repo/.lazyspeckit/reviewers/code-quality.md" ]
+  [ -f "$repo/.lazyspeckit/reviewers/spec-compliance.md" ]
+  [ -f "$repo/.lazyspeckit/reviewers/test.md" ]
+}
+
+@test "cli: init output mentions reviewer installation" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+
+  run run_cli init --here --ai copilot
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Reviewer skill files installed"* ]]
+}
+
+@test "cli: upgrade installs reviewer skill files on disk" {
+  local repo
+  repo="$(create_test_repo)"
+  create_fake_specify
+
+  run run_cli upgrade "$repo" --ai copilot
+  [ "$status" -eq 0 ]
+  [ -f "$repo/.lazyspeckit/reviewers/architecture.md" ]
+  [ -f "$repo/.lazyspeckit/reviewers/code-quality.md" ]
+  [ -f "$repo/.lazyspeckit/reviewers/spec-compliance.md" ]
+  [ -f "$repo/.lazyspeckit/reviewers/test.md" ]
+}
+
+@test "cli: upgrade output mentions reviewer installation" {
+  local repo
+  repo="$(create_test_repo)"
+  create_fake_specify
+
+  run run_cli upgrade "$repo" --ai copilot
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Reviewer skill files installed"* ]]
 }

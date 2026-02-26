@@ -42,6 +42,7 @@ Want the fully hands-off experience? Add `--auto-clarify`:
 - [How It Works](#how-it-works)
 - [Auto-Clarify — True Hands-Off Mode](#auto-clarify--true-hands-off-mode)
 - [Review & Refine — What Makes LazySpecKit Different](#review--refine--what-makes-lazyspeckit-different)
+- [Custom Reviewers](#custom-reviewers)
 - [CLI Reference](#cli-reference)
 - [Supported AI Agents](#supported-ai-agents)
 - [Environment Variables](#environment-variables)
@@ -218,6 +219,54 @@ To explicitly enable (the default):
 ```
 
 > **Bottom line:** With plain SpecKit, you implement and hope for the best. With LazySpecKit, four agents — each with a different perspective — review your code, fix what's wrong, and verify the result. You get reviewed, refined, validated code without lifting a finger.
+
+---
+
+## Custom Reviewers
+
+When you run `lazyspeckit init` or `lazyspeckit upgrade`, four default reviewer skill files are installed into your project:
+
+```
+.lazyspeckit/reviewers/
+├── architecture.md        # System design
+├── code-quality.md        # Engineering craft
+├── spec-compliance.md     # Requirements coverage
+└── test.md                # QA & test quality
+```
+
+Each file defines one reviewer agent that participates in the Review & Refine phase. You can **edit any default** to tune its behavior, or **add new `.md` files** to create additional reviewers.
+
+### Skill file format
+
+```markdown
+---
+name: Security Reviewer
+perspective: Application security and vulnerability prevention
+---
+
+Focus on:
+- Input validation and sanitization
+- Authentication and authorization boundaries
+- Secret handling (no hardcoded credentials)
+- SQL injection, XSS, CSRF, path traversal
+- Dependency vulnerabilities (known CVEs)
+
+Severity guide:
+- Critical: exploitable vulnerability, credential leak
+- High: missing auth check, unsanitized user input
+- Medium: missing rate limiting, overly permissive CORS
+- Low: informational security best practices
+```
+
+**Required frontmatter:**
+- `name` — Reviewer display name
+- `perspective` — One-line description of the review angle
+
+**Body:** Freeform instructions — what to look for, what to flag, severity guidance, domain rules. This becomes the reviewer's system prompt.
+
+### Adding new reviewers
+
+Drop a new `.md` file into `.lazyspeckit/reviewers/` with a unique `name`. It runs as an additional reviewer alongside the defaults. There is no limit on how many you can add.
 
 ---
 

@@ -15,6 +15,14 @@ OWNER_REPO="Hacklone/lazy-spec-kit"
 REF="${LAZYSPECKIT_REF:-main}"
 PROMPT_REPO_PATH="prompts/LazySpecKit.prompt.md"
 
+# Default reviewer skill files (repo paths → installed to .lazyspeckit/reviewers/)
+REVIEWER_FILES=(
+  "reviewers/architecture.md"
+  "reviewers/code-quality.md"
+  "reviewers/spec-compliance.md"
+  "reviewers/test.md"
+)
+
 DEBUG="${DEBUG:-0}"
 
 # ---------- logging ----------
@@ -62,7 +70,8 @@ fetch() {
 }
 
 raw_url() {
-  printf 'https://raw.githubusercontent.com/%s/%s/%s' "$OWNER_REPO" "$REF" "$PROMPT_REPO_PATH"
+  local path="${1:-$PROMPT_REPO_PATH}"
+  printf 'https://raw.githubusercontent.com/%s/%s/%s' "$OWNER_REPO" "$REF" "$path"
 }
 
 cache_bust() {
@@ -93,6 +102,52 @@ install_file() {
   fi
 }
 
+# ---------- reviewer hash stamping ----------
+HASH_PREFIX="<!-- lazyspeckit-hash:"
+HASH_SUFFIX=" -->"
+
+content_hash() {
+  # Compute SHA-256 of a file's content (excluding any existing hash stamp line).
+  local file="${1:-}"
+  [[ -n "$file" && -f "$file" ]] || { echo ""; return 1; }
+  grep -v "^${HASH_PREFIX}" "$file" | shasum -a 256 | cut -d' ' -f1
+}
+
+stamp_file() {
+  # Append a hash stamp to a file (removes any existing stamp first).
+  local file="${1:-}"
+  [[ -n "$file" && -f "$file" ]] || return 1
+  local hash
+  hash="$(content_hash "$file")"
+  # Remove old stamp if present, then append new one
+  local tmp_stamp
+  tmp_stamp="$(mktemp)"
+  grep -v "^${HASH_PREFIX}" "$file" > "$tmp_stamp" || true
+  printf '%s%s%s\n' "$HASH_PREFIX" "$hash" "$HASH_SUFFIX" >> "$tmp_stamp"
+  mv -f "$tmp_stamp" "$file"
+}
+
+stored_hash() {
+  # Extract the hash value from a file's stamp line, or empty string if none.
+  local file="${1:-}"
+  [[ -n "$file" && -f "$file" ]] || { echo ""; return 0; }
+  local line
+  line="$(grep "^${HASH_PREFIX}" "$file" 2>/dev/null | tail -n1)" || true
+  if [[ -z "$line" ]]; then echo ""; return 0; fi
+  echo "$line" | sed "s/^${HASH_PREFIX}//" | sed "s/${HASH_SUFFIX}$//" | tr -d ' '
+}
+
+is_default_unmodified() {
+  # Returns 0 if the file is an unmodified default (stamp present + hash matches).
+  local file="${1:-}"
+  [[ -n "$file" && -f "$file" ]] || return 1
+  local stored current
+  stored="$(stored_hash "$file")"
+  [[ -n "$stored" ]] || return 1   # no stamp → not a default or user removed it
+  current="$(content_hash "$file")"
+  [[ "$stored" == "$current" ]]
+}
+
 main() {
   local target
   target="$(infer_target "${1:-}")"
@@ -118,6 +173,55 @@ main() {
   ok "Prompts installed:"
   echo "  - $target/.github/prompts/LazySpecKit.prompt.md"
   echo "  - $target/.claude/commands/LazySpecKit.md"
+
+  # Install default reviewer skill files
+  # - Missing       → install + stamp
+  # - Unmodified    → update  + stamp  (hash matches → safe to overwrite)
+  # - User-modified → skip             (hash mismatch or no stamp → preserve)
+  info "Installing default reviewer skill files..."
+  local reviewer_path reviewer_tmp reviewer_url reviewer_name
+  local reviewers_installed=0 reviewers_updated=0 reviewers_skipped=0
+  for reviewer_path in "${REVIEWER_FILES[@]}"; do
+    reviewer_name="$(basename "$reviewer_path")"
+    local dst="$target/.lazyspeckit/reviewers/$reviewer_name"
+    if [[ -f "$dst" ]]; then
+      if is_default_unmodified "$dst"; then
+        # Unmodified default → download new version and overwrite
+        reviewer_tmp="$(mktemp)"
+        reviewer_url="$(cache_bust "$(raw_url "$reviewer_path")")"
+        if fetch "$reviewer_url" "$reviewer_tmp" 2>/dev/null && [[ -s "$reviewer_tmp" ]]; then
+          install_file "$reviewer_tmp" "$dst" "0644"
+          stamp_file "$dst"
+          reviewers_updated=$((reviewers_updated + 1))
+        else
+          err "Failed to download reviewer: $reviewer_name (skipping)"
+        fi
+        rm -f "$reviewer_tmp"
+      else
+        # User-modified or no stamp → preserve
+        reviewers_skipped=$((reviewers_skipped + 1))
+      fi
+      continue
+    fi
+    # Missing → install fresh
+    reviewer_tmp="$(mktemp)"
+    reviewer_url="$(cache_bust "$(raw_url "$reviewer_path")")"
+    if fetch "$reviewer_url" "$reviewer_tmp" 2>/dev/null && [[ -s "$reviewer_tmp" ]]; then
+      install_file "$reviewer_tmp" "$dst" "0644"
+      stamp_file "$dst"
+      reviewers_installed=$((reviewers_installed + 1))
+    else
+      err "Failed to download reviewer: $reviewer_name (skipping)"
+    fi
+    rm -f "$reviewer_tmp"
+  done
+
+  local summary=""
+  [[ "$reviewers_installed" -gt 0 ]] && summary="${reviewers_installed} installed"
+  [[ "$reviewers_updated" -gt 0 ]]  && summary="${summary:+$summary, }${reviewers_updated} updated"
+  [[ "$reviewers_skipped" -gt 0 ]]  && summary="${summary:+$summary, }${reviewers_skipped} customized (kept)"
+  ok "Reviewer skill files: ${summary:-up to date}"
+  echo "  - $target/.lazyspeckit/reviewers/"
 }
 
 main "${1:-}"

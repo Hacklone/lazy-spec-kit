@@ -493,6 +493,7 @@
       margin-top: 2rem;
     }
     @media (max-width: 600px) { .comparison { grid-template-columns: 1fr; } }
+    @media (max-width: 600px) { .reviewer-options { grid-template-columns: 1fr; } }
     .comparison-col {
       background: var(--bg-card);
       border: 1px solid var(--border);
@@ -1138,6 +1139,68 @@
     <p style="text-align: center; color: var(--text-muted); font-size: .9rem; margin-top: 2rem;">
       Review & Refine is <strong style="color: var(--text);">on by default</strong>. Disable with <code style="font-family: var(--font-mono); font-size: .82rem; color: var(--accent);">--review=off</code> if you just want the SpecKit automation.
     </p>
+
+    <!-- Custom Reviewers -->
+    <div style="margin-top: 4rem; border-top: 1px solid var(--border); padding-top: 3rem;">
+      <p class="section-label">Extensible</p>
+      <h3 style="font-size: clamp(1.3rem, 3vw, 1.7rem); font-weight: 700; letter-spacing: -0.02em; margin-bottom: .75rem; text-align: left;">Custom Reviewers</h3>
+      <p style="color: var(--text-muted); font-size: .95rem; max-width: 640px; margin-bottom: 2rem; line-height: 1.7;">
+        Four default reviewer skill files are installed during <code style="font-family: var(--font-mono); font-size: .85rem; color: var(--accent);">lazyspeckit init</code>. Edit any default to tune its behavior, or add new <code style="font-family: var(--font-mono); font-size: .85rem; color: var(--accent);">.md</code> files to create additional reviewers.
+      </p>
+
+      <div class="code-block" style="margin-bottom: 2rem;">
+        <div class="code-block-header">
+          <span>.lazyspeckit/reviewers/</span>
+        </div>
+        <pre>├── architecture.md        <span class="comment"># System design</span>
+├── code-quality.md        <span class="comment"># Engineering craft</span>
+├── spec-compliance.md     <span class="comment"># Requirements coverage</span>
+└── test.md                <span class="comment"># QA &amp; test quality</span></pre>
+      </div>
+
+      <div class="reviewer-options" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 2rem;">
+        <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1.25rem;">
+          <h4 style="font-size: .9rem; color: var(--accent2); margin-bottom: .5rem;">✏️ Customize Defaults</h4>
+          <p style="color: var(--text-muted); font-size: .85rem; line-height: 1.6;">Edit the installed files directly to adjust focus areas, severity rules, or domain-specific guidance for any default reviewer.</p>
+        </div>
+        <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1.25rem;">
+          <h4 style="font-size: .9rem; color: var(--accent3); margin-bottom: .5rem;">➕ Add New Reviewers</h4>
+          <p style="color: var(--text-muted); font-size: .85rem; line-height: 1.6;">Drop a new <code style="font-family:var(--font-mono);font-size:.8rem;color:var(--accent);">.md</code> file with a unique <code style="font-family:var(--font-mono);font-size:.8rem;color:var(--accent);">name</code> into the folder. It runs as an additional agent alongside the defaults.</p>
+        </div>
+      </div>
+
+      <div class="code-block">
+        <div class="code-block-header">
+          <span>.lazyspeckit/reviewers/security.md</span>
+        </div>
+        <pre><span class="comment">---</span>
+<span class="cmd">name</span>: <span class="string">Security Reviewer</span>
+<span class="cmd">perspective</span>: <span class="string">Application security and vulnerability prevention</span>
+<span class="comment">---</span>
+
+Focus on:
+- Input validation and sanitization
+- Authentication and authorization boundaries
+- Secret handling (no hardcoded credentials)
+- SQL injection, XSS, CSRF, path traversal
+- Dependency vulnerabilities (known CVEs)
+
+Severity guide:
+- <span class="flag">Critical</span>: exploitable vulnerability, credential leak
+- <span class="flag">High</span>: missing auth check, unsanitized user input
+- <span class="flag">Medium</span>: missing rate limiting, overly permissive CORS
+- <span class="flag">Low</span>: informational security best practices</pre>
+      </div>
+
+      <div style="margin-top: 1.5rem; display: grid; grid-template-columns: auto 1fr; gap: .75rem 1rem; font-size: .88rem; color: var(--text-muted); line-height: 1.6;">
+        <strong style="color: var(--text);">name</strong>
+        <span>Reviewer display name — must be unique across all reviewers</span>
+        <strong style="color: var(--text);">perspective</strong>
+        <span>One-line description of the review angle</span>
+        <strong style="color: var(--text);">body</strong>
+        <span>Freeform instructions — what to look for, severity rules, domain-specific guidance. Injected as the reviewer's system prompt.</span>
+      </div>
+    </div>
   </div>
 </section>
 

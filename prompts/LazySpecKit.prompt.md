@@ -433,16 +433,71 @@ If the user invoked `/LazySpecKit --review=off ...`, skip this entire phase.
 
 Goal: improve architecture alignment, spec compliance, and code quality WITHOUT scope creep.
 
+## Reviewer Agents
+
+Reviewers are defined by Markdown skill files in `.lazyspeckit/reviewers/`.
+Four default reviewer files are installed during `lazyspeckit init` / `lazyspeckit upgrade`:
+
+- `architecture.md` — System design: structure, dependencies, abstraction boundaries
+- `code-quality.md` — Engineering craft: idioms, error handling, duplication, readability
+- `spec-compliance.md` — Requirements: missing or incorrect spec implementation
+- `test.md` — QA: coverage gaps, fragile tests, missing edge cases
+
+Users can **edit** any default file to customize its behavior, or **add new `.md` files** to create additional reviewers.
+
+### Skill File Format
+
+Each `.md` file in `.lazyspeckit/reviewers/` defines one reviewer agent:
+
+```markdown
+---
+name: <Reviewer display name>
+perspective: <1-line perspective description>
+---
+
+<Freeform review instructions — what to look for, what to flag, what to ignore, style preferences, domain-specific rules, etc.>
+```
+
+**Required frontmatter fields:**
+- `name` — Reviewer display name (e.g., "Security Reviewer", "Performance Reviewer")
+- `perspective` — One-line description of the reviewer's perspective
+
+**Body:** Freeform Markdown with review instructions, rules, and focus areas. The body is injected as the reviewer's system prompt when it is spawned.
+
+### Example: Adding a Security Reviewer
+
+File: `.lazyspeckit/reviewers/security.md`
+
+```markdown
+---
+name: Security Reviewer
+perspective: Application security and vulnerability prevention
+---
+
+Focus on:
+- Input validation and sanitization
+- Authentication and authorization boundaries
+- Secret handling (no hardcoded credentials, no leaked tokens)
+- SQL injection, XSS, CSRF, path traversal
+- Dependency vulnerabilities (known CVEs)
+
+Severity guide:
+- Critical: exploitable vulnerability, credential leak
+- High: missing auth check, unsanitized user input in sensitive path
+- Medium: missing rate limiting, overly permissive CORS
+- Low: informational security best practices
+```
+
 ## Review Setup
-- Spawn reviewer sub-agents (fresh context each):
-  1) "Architecture Reviewer"
-  2) "Code Quality Reviewer"
-  3) "Spec Compliance Reviewer"
-  4) "Test Reviewer"
+
+1. Read all `.md` files from `.lazyspeckit/reviewers/`.
+2. Parse frontmatter (`name`, `perspective`) and body from each file.
+3. Spawn each reviewer as a sub-agent with fresh context.
 
 Each reviewer MUST:
 - Read and obey applicable scoped `agents.md` files for the areas they evaluate.
 - Review ONLY within the scope of the implemented changes and the approved spec/tasks.
+- Follow the instructions from its skill file.
 - Produce findings categorized as: Critical / High / Medium / Low
 - Provide concrete, actionable items.
 
