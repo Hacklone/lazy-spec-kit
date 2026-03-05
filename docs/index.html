@@ -86,10 +86,10 @@
     }
     .nav-brand img { height: 24px; width: auto; }
     .nav-brand span { font-size: 1.1rem; }
-    .nav-links { display: flex; gap: 1.5rem; list-style: none; }
+    .nav-links { display: flex; gap: 1rem; list-style: none; flex-wrap: nowrap; align-items: center; }
     .nav-links a {
       color: var(--text-muted);
-      font-size: .85rem;
+      font-size: .82rem;
       font-weight: 500;
       transition: color .15s;
     }
@@ -612,6 +612,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      text-align: left;
       gap: 1rem;
       user-select: none;
     }
@@ -630,6 +631,7 @@
       color: var(--text-muted);
       font-size: .9rem;
       line-height: 1.65;
+      text-align: left;
     }
     .faq-item.open .faq-a {
       max-height: 1200px;
@@ -742,7 +744,6 @@
     <a href="#" class="nav-brand"><img src="logo.webp" alt="" aria-hidden="true"> <span>LazySpecKit</span></a>
     <button class="nav-hamburger" aria-label="Toggle menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">☰</button>
     <ul class="nav-links">
-      <li><a href="#what-is-speckit">What is SpecKit?</a></li>
       <li><a href="#install">Install</a></li>
       <li><a href="#quick-start">Quick Start</a></li>
       <li><a href="#how-it-works">How It Works</a></li>
