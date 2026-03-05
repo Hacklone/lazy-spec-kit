@@ -197,15 +197,45 @@ If missing:
 
 Ask once:
 
-Paste your SpecKit constitution text now. Keep it short (bullets are fine). Finish in one message.
+---
 
-Wait.
+**A constitution is needed before we begin.**
 
-Run `/speckit.constitution`.
+The constitution tells SpecKit about your project — its tech stack, conventions, and preferences — so that every generated plan, task, and code change aligns with how your project actually works.
 
-Handle follow-up questions if needed.
+Paste your constitution text below. Keep it short (bullets are fine). Finish in one message.
 
-Proceed once successful.
+What to include (pick what applies):
+- **Tech stack** — languages, frameworks, databases, infrastructure
+- **Code style** — naming conventions, file/folder structure, patterns (e.g., "use repository pattern", "prefer functional components")
+- **Testing** — framework, coverage expectations, test file conventions
+- **Build & tooling** — package manager, bundler, linter, CI requirements
+- **Constraints** — security policies, performance targets, accessibility, compliance
+- **Domain context** — brief description of what the project does
+
+Example:
+```
+- TypeScript + React 19 frontend, Node.js + Express backend
+- PostgreSQL with Prisma ORM
+- Vitest for unit tests, Playwright for E2E
+- pnpm workspaces monorepo
+- All API routes require auth middleware
+- Follow existing patterns in src/
+```
+
+---
+
+Wait for the user to respond.
+
+Once the user provides constitution text, run:
+
+/speckit.constitution
+
+Pass the user-provided text as the constitution content. The text the user pasted IS the constitution — feed it directly into the command.
+
+Handle follow-up questions from `/speckit.constitution` if needed.
+
+Proceed once the constitution is successfully created.
 
 ---
 
@@ -372,6 +402,40 @@ Stop only if:
 - A true product decision is required.
 
 If stopping, escalate using the BLOCKED format.
+
+---
+
+# Pre-Implementation: Scoped agents.md Creation
+
+After spec quality gates pass and BEFORE implementation begins:
+
+1) Check if `agents.md` (or `AGENTS.md`) files already exist at:
+   - Repository root
+   - Immediate subdirectories (1 level below root) that will contain code based on the planned tasks (e.g., `server/`, `frontend/`, `api/`, `web/`)
+
+2) If NO `agents.md` exists at the root, create one at the repository root.
+
+3) For each immediate subdirectory (1 level below root) that the planned tasks will create or modify substantially AND that does not already have its own `agents.md`, create a scoped `agents.md` for that directory.
+
+4) Do NOT create `agents.md` files deeper than 1 level below root.
+
+5) Content rules for generated `agents.md` files:
+   - Derive rules from the constitution, existing codebase conventions, and the approved plan/tasks.
+   - Keep it concise and actionable (bullets, not essays).
+   - Include only rules that are meaningful for the codebase:
+     - Language and framework versions
+     - File/folder structure conventions
+     - Naming conventions (files, variables, functions, components)
+     - Testing patterns and requirements
+     - Import/export style
+     - Error handling patterns
+     - Any domain-specific constraints from the constitution
+   - Root `agents.md`: broad project-wide rules.
+   - Scoped `agents.md` (e.g., `server/agents.md`): rules specific to that area (e.g., API patterns, ORM usage, component conventions).
+
+6) If `agents.md` files already exist, do NOT modify them.
+
+These files are now part of the repository governance and MUST be respected by the implementation phase (per the Repository Governance rules).
 
 ---
 

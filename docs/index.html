@@ -742,6 +742,7 @@
     <a href="#" class="nav-brand"><img src="logo.webp" alt="" aria-hidden="true"> <span>LazySpecKit</span></a>
     <button class="nav-hamburger" aria-label="Toggle menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">☰</button>
     <ul class="nav-links">
+      <li><a href="#what-is-speckit">What is SpecKit?</a></li>
       <li><a href="#install">Install</a></li>
       <li><a href="#quick-start">Quick Start</a></li>
       <li><a href="#how-it-works">How It Works</a></li>
@@ -820,6 +821,55 @@
         <p>Full automation plus a <strong>multi-agent review & refine</strong> phase. Four AI agents audit your code from different perspectives and auto-fix issues.</p>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- ==================== CONSTITUTION ==================== -->
+<section id="constitution">
+  <div class="container">
+    <p class="section-label">First-time setup</p>
+    <h2 class="section-title">What is a Constitution?</h2>
+    <p class="section-desc">A <strong style="color: var(--text)">constitution</strong> is a short document that tells SpecKit about your project — its tech stack, conventions, and preferences — so that every generated plan, task, and code change aligns with how your project actually works.</p>
+
+    <div class="cards" style="margin-top: .5rem;">
+      <div class="card">
+        <div class="card-icon">🛠️</div>
+        <h3>Tech Stack</h3>
+        <p>Languages, frameworks, databases, infrastructure — so the agent picks the right tools.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🎨</div>
+        <h3>Code Style</h3>
+        <p>Naming conventions, file structure, patterns (e.g. “use repository pattern”, “functional components”).</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🧪</div>
+        <h3>Testing & Tooling</h3>
+        <p>Test framework, coverage expectations, package manager, linter, CI requirements.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔒</div>
+        <h3>Constraints</h3>
+        <p>Security policies, performance targets, accessibility, compliance, domain context.</p>
+      </div>
+    </div>
+
+    <div class="code-block" style="margin-top: 2rem; max-width: 640px;">
+      <div class="code-block-header">
+        <span>Example constitution</span>
+      </div>
+      <pre><span class="comment"># My Project Constitution</span>
+- TypeScript + React 19 frontend, Node.js + Express backend
+- PostgreSQL with Prisma ORM
+- Vitest for unit tests, Playwright for E2E
+- pnpm workspaces monorepo
+- All API routes require auth middleware
+- Follow existing patterns in src/</pre>
+    </div>
+
+    <p style="color: var(--text-muted); font-size: .9rem; margin-top: 1.5rem; max-width: 640px; line-height: 1.65;">
+      The first time you run <code style="font-family:var(--font-mono); font-size:.82rem; color:var(--accent)">/LazySpecKit</code> in a project without an existing constitution, it will ask you to provide one. Paste your text, and LazySpecKit passes it to SpecKit’s <code style="font-family:var(--font-mono); font-size:.82rem; color:var(--accent)">/speckit.constitution</code> command. After that, it’s saved in your project and reused for every future run.
+    </p>
   </div>
 </section>
 
@@ -916,7 +966,7 @@
       <div class="timeline-step">
         <div class="step-label">Phase 0</div>
         <h3>Constitution <span class="badge-pause">if missing</span></h3>
-        <p>Checks for an existing constitution. If none found, asks you to provide one — once.</p>
+        <p>Checks for an existing <a href="#constitution">constitution</a>. If none found, asks you to provide one — a short description of your project’s tech stack, conventions, and preferences. Created once, reused forever.</p>
       </div>
       <div class="timeline-step">
         <div class="step-label">Phase 1</div>
@@ -1279,12 +1329,12 @@ Severity guide:
     <div class="code-block" style="margin-top: 1.5rem;">
       <div class="code-block-header">
         <span>Pin to a specific version</span>
-        <button class="copy-btn" data-copy="LAZYSPECKIT_REF=v0.6.2 lazyspeckit self-update" aria-label="Copy command">
+        <button class="copy-btn" data-copy="LAZYSPECKIT_REF=v0.6.3 lazyspeckit self-update" aria-label="Copy command">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
           Copy
         </button>
       </div>
-      <pre><span class="cmd">LAZYSPECKIT_REF</span>=<span class="string">v0.6.2</span> <span class="cmd">lazyspeckit self-update</span></pre>
+      <pre><span class="cmd">LAZYSPECKIT_REF</span>=<span class="string">v0.6.3</span> <span class="cmd">lazyspeckit self-update</span></pre>
     </div>
   </div>
 </section>
@@ -1320,6 +1370,12 @@ Severity guide:
     <p class="section-label">Questions</p>
     <h2 class="section-title">FAQ</h2>
 
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        What is a constitution and what should I put in it?
+      </div>
+      <div class="faq-a">A constitution is a short project description that tells SpecKit about your tech stack, coding conventions, testing setup, and constraints. It's created once on first run and reused for every future spec. Include things like languages, frameworks, databases, test frameworks, code style preferences, and any hard constraints (security, compliance, etc.). See the <a href="#constitution">Constitution section</a> for examples.</div>
+    </div>
     <div class="faq-item">
       <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
         Why does upgrade run <code>specify init --force</code>?

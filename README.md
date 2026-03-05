@@ -39,6 +39,8 @@ Want the fully hands-off experience? Add `--auto-clarify`:
 
 - [Install](#install)
 - [Quick Start](#quick-start)
+- [What is SpecKit?](#what-is-speckit)
+- [What is a Constitution?](#what-is-a-constitution)
 - [How It Works](#how-it-works)
 - [Auto-Clarify — True Hands-Off Mode](#auto-clarify--true-hands-off-mode)
 - [Review & Refine — What Makes LazySpecKit Different](#review--refine--what-makes-lazyspeckit-different)
@@ -105,19 +107,62 @@ That's it. LazySpecKit takes over from there — implementation, validation, and
 
 ---
 
+## What is SpecKit?
+
+[GitHub SpecKit](https://github.com/github/spec-kit) is a structured workflow for AI-assisted development. Instead of giving an AI agent a vague prompt and hoping for the best, SpecKit turns a natural-language spec into a formal plan, generates tasks, validates spec quality, implements code, and runs validation — all through slash commands (`/speckit.specify`, `/speckit.clarify`, `/speckit.plan`, etc.).
+
+LazySpecKit wraps SpecKit and automates the entire lifecycle — you don't need to run each slash command manually. It also adds a multi-agent review phase that SpecKit doesn't have.
+
+---
+
+## What is a Constitution?
+
+A **constitution** is a short document that tells SpecKit about your project — its tech stack, conventions, and preferences. It's created once per project (on first run) and ensures that every generated plan, task, and code change aligns with how your project actually works.
+
+### What to include
+
+Pick what applies to your project:
+
+- **Tech stack** — languages, frameworks, databases, infrastructure
+- **Code style** — naming conventions, file/folder structure, patterns (e.g., "use repository pattern", "prefer functional components")
+- **Testing** — framework, coverage expectations, test file conventions
+- **Build & tooling** — package manager, bundler, linter, CI requirements
+- **Constraints** — security policies, performance targets, accessibility, compliance
+- **Domain context** — brief description of what the project does
+
+### Example constitution
+
+```
+- TypeScript + React 19 frontend, Node.js + Express backend
+- PostgreSQL with Prisma ORM
+- Vitest for unit tests, Playwright for E2E
+- pnpm workspaces monorepo
+- All API routes require auth middleware
+- Follow existing patterns in src/
+```
+
+### When is it created?
+
+The first time you run `/LazySpecKit` in a project without an existing constitution, it will ask you to provide one. Paste your constitution text, and LazySpecKit passes it to SpecKit's `/speckit.constitution` command. After that, it's saved in your project and reused for every future run.
+
+If your project already has a constitution (e.g., from a previous SpecKit setup), LazySpecKit detects it automatically and skips this step.
+
+---
+
 ## How It Works
 
 When you run `/LazySpecKit <spec>`, it orchestrates the full SpecKit lifecycle automatically:
 
 | Phase | What happens | User input needed? |
 |-------|-------------|-------------------|
-| **Constitution** | Checks for an existing constitution; asks you to provide one if missing | Only if missing |
+| **Constitution** | Checks for an existing [constitution](#what-is-a-constitution); asks you to provide one if missing | Only if missing |
 | **Specify** | Runs `/speckit.specify` with your spec text | No |
 | **Clarify** | Presents clarification questions | **Yes — answer once** (or use `--auto-clarify`) |
 | **Plan** | Generates implementation plan | No |
 | **Tasks** | Breaks plan into sequential tasks | No |
 | **Quality Gates** | Runs `/speckit.checklist` + `/speckit.analyze`, auto-fixes spec issues | No |
-| **Implement** | Executes tasks in a fresh session | No |
+| **Governance** | Creates scoped `agents.md` governance files if missing (root + immediate subdirectories) | No |
+| **Implement** | Executes tasks in a fresh session, following `agents.md` rules | No |
 | **Validate** | Runs detected lint / typecheck / tests / build | No |
 | **Review & Refine** | Four AI agents review from different perspectives — architecture, quality, spec compliance, tests — and **auto-fix** findings (up to 3 loops) | No |
 | **Final Validation** | Full validation suite re-run to guarantee green before completion | No |
@@ -360,10 +405,10 @@ Both prompts are installed from the same source. If your repo has both `.vscode`
 
 ```bash
 # Install a specific version
-LAZYSPECKIT_REF=v0.6.2 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/v0.6.2/install.sh)"
+LAZYSPECKIT_REF=v0.6.3 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/v0.6.3/install.sh)"
 
 # Self-update to a specific version
-LAZYSPECKIT_REF=v0.6.2 lazyspeckit self-update
+LAZYSPECKIT_REF=v0.6.3 lazyspeckit self-update
 ```
 
 ---
@@ -422,6 +467,10 @@ DEBUG=1 lazyspeckit doctor --here
 
 ## FAQ
 
+### What is a constitution and what should I put in it?
+
+A constitution is a short project description that tells SpecKit about your tech stack, coding conventions, testing setup, and constraints. It's created once per project (on first run) and reused for every future spec. See [What is a Constitution?](#what-is-a-constitution) for details and examples.
+
 ### Why does `upgrade` run `specify init --force`?
 
 That's how SpecKit refreshes its project files (slash commands, templates). LazySpecKit automatically backs up and restores your constitution and custom templates before and after the init.
@@ -451,7 +500,7 @@ Yes. Each recommendation includes a confidence level. High-confidence answers fo
 
 ### What does LazySpecKit respect from my repo?
 
-LazySpecKit respects `agents.md` governance files. A root-level `agents.md` applies to the entire repo; nested ones apply to their directory and subdirectories. These rules are enforced across all phases.
+LazySpecKit respects `agents.md` governance files. A root-level `agents.md` applies to the entire repo; nested ones apply to their directory and subdirectories. These rules are enforced across all phases. During implementation, LazySpecKit also **creates** scoped `agents.md` files if they're missing — at the root and for immediate subdirectories that contain generated code — so future runs (and other AI agents) benefit from documented project conventions.
 
 ### How is LazySpecKit different from OpenSpec?
 
