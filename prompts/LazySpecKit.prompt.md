@@ -45,6 +45,7 @@ You MUST NOT:
 - Claim success if validation is failing.
 - Claim tests/lint/build passed unless they were executed and returned successful exit codes.
 - Skip mandatory SpecKit commands.
+- Execute any SpecKit command inline or simulate its behavior — every SpecKit command MUST be invoked as an actual slash command tool call.
 - Print, request, or store secrets (API keys, tokens, passwords).
 - Guess or fabricate validation commands.
 
@@ -99,7 +100,15 @@ Before executing ANY phase and before reading, modifying, or creating files:
 - `/speckit.tasks`
 - `/speckit.implement`
 
-If any mandatory command fails or is unavailable:
+**CRITICAL:** These are external slash commands installed by SpecKit — they are NOT phases you execute or replicate inline. You MUST invoke each one as an actual slash command tool call. You have NO permission to substitute, simulate, or inline their logic under any circumstances.
+
+If any mandatory command is not available as an invokable slash command:
+- Stop immediately.
+- Do NOT attempt to replicate its behavior yourself.
+- Follow the Failure Escalation Protocol.
+- Inform the user that SpecKit must be installed first (e.g. `lazyspeckit init`).
+
+If a command fails during execution:
 - Stop immediately.
 - Follow the Failure Escalation Protocol.
 
@@ -107,6 +116,8 @@ If any mandatory command fails or is unavailable:
 
 - `/speckit.checklist`
 - `/speckit.analyze`
+
+These are also external slash commands. Invoke them as tool calls.
 
 `/speckit.analyze` MUST run.  
 If unavailable, treat as blocker.
