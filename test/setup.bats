@@ -486,7 +486,7 @@ SCRIPT
 
   run run_setup "$repo"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"4 installed"* ]]
+  [[ "$output" == *"6 installed"* ]]
 }
 
 @test "setup.sh: prints reviewer directory path in output" {
@@ -627,20 +627,20 @@ SCRIPT
   local repo
   repo="$(create_bare_repo)"
 
-  # First install all 4
+  # First install all 6
   run run_setup "$repo"
   [ "$status" -eq 0 ]
 
-  # Modify 1, delete 1, leave 2 unmodified
+  # Modify 1, delete 1, leave 4 unmodified
   sed -i.bak '1s/^/# edited\n/' "$repo/.lazyspeckit/reviewers/architecture.md"
   rm -f "$repo/.lazyspeckit/reviewers/architecture.md.bak"
   rm -f "$repo/.lazyspeckit/reviewers/test.md"
 
   run run_setup "$repo"
   [ "$status" -eq 0 ]
-  # 1 installed (test.md), 2 updated (code-quality, spec-compliance), 1 customized (architecture)
+  # 1 installed (test.md), 4 updated (code-quality, security, performance, spec-compliance), 1 customized (architecture)
   [[ "$output" == *"1 installed"* ]]
-  [[ "$output" == *"2 updated"* ]]
+  [[ "$output" == *"4 updated"* ]]
   [[ "$output" == *"1 customized (kept)"* ]]
 }
 

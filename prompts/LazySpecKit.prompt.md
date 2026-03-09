@@ -12,13 +12,15 @@ User runs:
 /LazySpecKit [options] <spec text>
 
 Supported options (optional):
-- --review=off        (disable post-implementation review/refine loop)
-- --review=on         (explicitly enable; default)
-- --auto-clarify      (auto-select recommendations for clarification questions; may still ask for Low-confidence items)
+- --review=off              (disable post-implementation review/refine loop)
+- --review=on               (explicitly enable; default)
+- --auto-clarify            (auto-select recommendations for clarification questions; may still ask for Low-confidence items)
+- --max-review-loops=N      (set maximum review/refine iterations; default: 6)
 
 Defaults:
 - --review=on
 - --auto-clarify=off
+- --max-review-loops=6
 
 Parsing rules:
 - Options, if present, MUST appear before the <spec text>.
@@ -194,6 +196,30 @@ Do NOT:
 
 ---
 
+# Live Phase Progress
+
+At the START of every phase, print a single-line progress indicator:
+
+```
+[Phase N/M] <Phase Name>...
+```
+
+Phase numbers:
+- Phase 0: Constitution (only if needed)
+- Phase 1: Specify
+- Phase 2: Clarify
+- Phase 3: Plan
+- Phase 4: Tasks
+- Phase 5: Spec Quality Gates
+- Phase 6: Implement
+- Phase 7: Review & Refine (if enabled)
+
+Use M = total phases that will execute in this run (skip Constitution if present; skip Review if `--review=off`).
+
+This indicator MUST appear before any other output for that phase. Keep it to exactly one line.
+
+---
+
 # Phase 0 — Constitution
 
 Detect constitution in:
@@ -350,6 +376,22 @@ If the user invoked `/LazySpecKit --auto-clarify <spec text>`:
 - Proceed immediately once Low-confidence items (if any) are resolved.
 
 Proceed once clarification is resolved (manual or auto).
+
+---
+
+# Spec Summary Confirmation
+
+After clarification is resolved (manual or auto) and BEFORE the coffee moment, print a concise human-readable summary of what will be built:
+
+---
+
+📋 **Spec Summary**
+
+<3–5 bullet points: what will be built, key decisions from clarification, tech approach>
+
+---
+
+This is informational only — do NOT pause or wait for confirmation. Continue immediately.
 
 ---
 
@@ -511,10 +553,12 @@ Goal: improve architecture alignment, spec compliance, and code quality WITHOUT 
 ## Reviewer Agents
 
 Reviewers are defined by Markdown skill files in `.lazyspeckit/reviewers/`.
-Four default reviewer files are installed during `lazyspeckit init` / `lazyspeckit upgrade`:
+Six default reviewer files are installed during `lazyspeckit init` / `lazyspeckit upgrade`:
 
 - `architecture.md` — System design: structure, dependencies, abstraction boundaries
 - `code-quality.md` — Engineering craft: idioms, error handling, duplication, readability
+- `security.md` — Application security: vulnerabilities, auth boundaries, data protection
+- `performance.md` — Runtime efficiency: queries, algorithms, rendering, resource usage
 - `spec-compliance.md` — Requirements: missing or incorrect spec implementation
 - `test.md` — QA: coverage gaps, fragile tests, missing edge cases
 
@@ -567,7 +611,10 @@ Severity guide:
 
 1. Read all `.md` files from `.lazyspeckit/reviewers/`.
 2. Parse frontmatter (`name`, `perspective`) and body from each file.
-3. Spawn each reviewer as a sub-agent with fresh context.
+3. Spawn ALL reviewers in parallel as independent sub-agents with fresh context.
+   - Reviewers are independent and have no dependencies on each other.
+   - Launch all of them simultaneously — do NOT run them sequentially.
+   - Collect all findings once every reviewer has completed.
 
 Each reviewer MUST:
 - Read and obey applicable scoped `agents.md` files for the areas they evaluate.
@@ -584,7 +631,7 @@ Each reviewer MUST:
 - Do NOT perform aesthetic refactors, repo-wide formatting, or unrelated cleanup.
 
 ## Iteration limits
-- Run at most 6 review loops total.
+- Run at most N review loops total, where N = the `--max-review-loops` value (default: 6).
 - Loop structure:
   1) Collect reviewer findings
   2) Apply fixes (only within policy)
@@ -594,7 +641,7 @@ Each reviewer MUST:
 Stop early if:
 - No Critical/High/Medium findings remain, AND validation is green.
 
-If still Critical/High/Medium after 6 loops:
+If still Critical/High/Medium after N loops (the `--max-review-loops` value):
 - Escalate using BLOCKED format with:
   - remaining Critical/High/Medium items
   - why they cannot be resolved safely within constraints
@@ -637,11 +684,56 @@ Optional (max 3 short lines):
 - Review loops: <N>
 - Files changed: <N>
 
-After printing this summary, STOP.
+After printing this summary, write the run audit log (see below), then STOP.
 
 No additional commentary.
 
 If blocked, print BLOCKED format instead.
+
+---
+
+# Run Audit Log
+
+After the Final Completion Summary (or a BLOCKED escalation), write a JSON audit log:
+
+**Path:** `.lazyspeckit/runs/<timestamp>.json`
+
+Where `<timestamp>` is ISO 8601 format: `YYYY-MM-DDTHH-MM-SS` (use hyphens instead of colons for filesystem safety).
+
+**Schema:**
+
+```json
+{
+  "timestamp": "<ISO 8601 datetime>",
+  "spec_summary": "<one-line spec description>",
+  "options": {
+    "review": true,
+    "auto_clarify": false,
+    "max_review_loops": 6
+  },
+  "phases": {
+    "constitution": { "status": "skipped | completed", "reason": "already exists | created" },
+    "specify": { "status": "completed | failed" },
+    "clarify": { "status": "completed", "questions_total": 5, "questions_auto_resolved": 3 },
+    "plan": { "status": "completed | failed" },
+    "tasks": { "status": "completed | failed", "task_count": 8 },
+    "analyze": { "status": "completed | failed", "iterations": 2, "issues_fixed": 4 },
+    "implement": { "status": "completed | failed" },
+    "validate": { "status": "completed | skipped | failed", "commands_run": ["npm run lint", "npm test"] },
+    "review": { "status": "completed | skipped | failed", "loops": 2, "findings_total": 12, "findings_fixed": 10, "findings_remaining": { "critical": 0, "high": 0, "medium": 2, "low": 3 } }
+  },
+  "outcome": "success | blocked",
+  "blocker": null,
+  "files_changed": 15
+}
+```
+
+Rules:
+- Populate each field based on actual execution data. Use `null` for fields that don't apply.
+- The `status` of each phase reflects what actually happened (not what was planned).
+- If the run ends with BLOCKED, set `outcome` to `"blocked"` and populate `blocker` with the blocker description.
+- Create the `.lazyspeckit/runs/` directory if it doesn't exist.
+- Do NOT log secrets, file contents, or user input — only metadata.
 
 ---
 

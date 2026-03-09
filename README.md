@@ -19,7 +19,7 @@
 
 ---
 
-LazySpecKit goes beyond wrapping [GitHub SpecKit](https://github.com/github/spec-kit). It orchestrates the entire workflow — from constitution setup through implementation and validation — and then launches its own **Review & Refine** phase: four specialized AI agents, each approaching the code from a different perspective (architecture, code quality, spec compliance, tests), that don't just *review* but **automatically fix** the issues they find. Add `--auto-clarify` and the agent even answers its own clarification questions when it's confident — making this the ultimate hands-off, spec-driven development workflow.
+LazySpecKit goes beyond wrapping [GitHub SpecKit](https://github.com/github/spec-kit). It orchestrates the entire workflow — from constitution setup through implementation and validation — and then launches its own **Review & Refine** phase: six specialized AI agents, each approaching the code from a different perspective (architecture, code quality, security, performance, spec compliance, tests), that don't just *review* but **automatically fix** the issues they find. Add `--auto-clarify` and the agent even answers its own clarification questions when it's confident — making this the ultimate hands-off, spec-driven development workflow.
 
 ```
 /LazySpecKit Add OAuth login with GitHub and Google. Store users in Postgres. Add tests.
@@ -158,13 +158,14 @@ When you run `/LazySpecKit <spec>`, it orchestrates the full SpecKit lifecycle a
 | **Constitution** | Checks for an existing [constitution](#what-is-a-constitution); asks you to provide one if missing | Only if missing |
 | **Specify** | Runs `/speckit.specify` with your spec text | No |
 | **Clarify** | Presents clarification questions | **Yes — answer once** (or use `--auto-clarify`) |
+| **Spec Summary** | Prints a concise summary of what will be built | No |
 | **Plan** | Generates implementation plan | No |
 | **Tasks** | Breaks plan into sequential tasks | No |
 | **Quality Gates** | Runs `/speckit.checklist` + `/speckit.analyze`, auto-fixes spec issues | No |
 | **Governance** | Creates scoped `agents.md` governance files if missing (root + immediate subdirectories) | No |
 | **Implement** | Executes tasks in a fresh session, following `agents.md` rules | No |
 | **Validate** | Runs detected lint / typecheck / tests / build | No |
-| **Review & Refine** | Four AI agents review from different perspectives — architecture, quality, spec compliance, tests — and **auto-fix** findings (up to 3 loops) | No |
+| **Review & Refine** | Six AI agents review from different perspectives — architecture, quality, security, performance, spec compliance, tests — and **auto-fix** findings (up to 6 loops, configurable via `--max-review-loops`) | No |
 | **Final Validation** | Full validation suite re-run to guarantee green before completion | No |
 
 **You only interact during Constitution (if missing) and Clarify.** With `--auto-clarify`, even Clarify becomes automatic for high/medium-confidence questions — you're only asked about genuinely ambiguous items. Everything else — including multi-agent review and automatic code refinement — is fully automated.
@@ -213,8 +214,7 @@ You can always answer manually in one message: `1: A  2: B  3: Other: <text>`
 |----------|--------------------|
 | **Maximum hands-off** — trust the agent's judgment | `/LazySpecKit --auto-clarify <spec>` |
 | **Full control** — answer every question yourself | `/LazySpecKit <spec>` |
-| **Hands-off, skip review** — fastest possible run | `/LazySpecKit --auto-clarify --review=off <spec>` |
-
+| **Hands-off, skip review** — fastest possible run | `/LazySpecKit --auto-clarify --review=off <spec>` || **Fewer review loops** — faster review convergence | `/LazySpecKit --max-review-loops=3 <spec>` |
 > **Bottom line:** `--auto-clarify` makes LazySpecKit the ultimate hands-off workflow. Write your spec, walk away, come back to reviewed and refined code.
 
 ---
@@ -223,28 +223,31 @@ You can always answer manually in one message: `1: A  2: B  3: Other: <text>`
 
 SpecKit stops after implementation and validation. **LazySpecKit keeps going.**
 
-This isn't a single-pass code review. After SpecKit's work is done, LazySpecKit spawns **four independent AI agents** — each with fresh context and a distinct perspective — that **review the code AND fix what they find**:
+This isn't a single-pass code review. After SpecKit's work is done, LazySpecKit spawns **six independent AI agents** — each with fresh context and a distinct perspective — that **review the code AND fix what they find**:
 
 | Agent | Perspective | What it catches & fixes |
 |-------|-------------|------------------------|
 | **Architecture Reviewer** | System design | Poor structure, tangled dependencies, wrong abstraction boundaries |
 | **Code Quality Reviewer** | Engineering craft | Bad idioms, missing error handling, duplication, readability issues |
+| **Security Reviewer** | Application security | Injection vulnerabilities, missing auth checks, credential leaks, input validation gaps |
+| **Performance Reviewer** | Runtime efficiency | N+1 queries, missing indexes, redundant computation, memory leaks |
 | **Spec Compliance Reviewer** | Requirements | Missing or incorrectly implemented spec requirements |
 | **Test Reviewer** | QA | Gaps in coverage, fragile tests, missing edge cases |
 
 ### Review, fix, verify — automatically
 
-1. All four agents analyze the changes from their perspective and produce findings (Critical / High / Medium / Low).
+1. All six agents analyze the changes — in parallel — from their perspective and produce findings (Critical / High / Medium / Low).
 2. LazySpecKit **automatically fixes** all Critical and High issues, plus low-effort Medium ones — this is refinement, not just reporting.
 3. Validation (lint / typecheck / tests / build) re-runs to confirm the fixes didn't break anything.
-4. The agents review again — up to **3 loops total** — until no Critical or High findings remain.
+4. The agents review again — up to **6 loops** by default (configurable with `--max-review-loops=N`) — until no Critical or High findings remain.
 5. A **final validation gate** ensures everything is green before completion.
 
 If a finding can't be resolved safely, LazySpecKit stops and tells you exactly what needs attention — it never ships broken code.
 
 ### Why this matters
 
-- **Multiple perspectives** — Four agents catch different classes of problems that a single reviewer would miss.
+- **Multiple perspectives** — Six agents catch different classes of problems that a single reviewer would miss.
+- **Parallel execution** — All reviewers run simultaneously for fast feedback.
 - **Not just review, but refinement** — Issues are fixed in place, not dumped on you as a TODO list.
 - **Iterative convergence** — Fix loops continue until the agents agree the code is clean.
 - **Safe by design** — Every fix is re-validated; regressions are caught and reverted.
@@ -263,18 +266,26 @@ To explicitly enable (the default):
 /LazySpecKit --review=on <your spec>
 ```
 
-> **Bottom line:** With plain SpecKit, you implement and hope for the best. With LazySpecKit, four agents — each with a different perspective — review your code, fix what's wrong, and verify the result. You get reviewed, refined, validated code without lifting a finger.
+To limit review iterations:
+
+```
+/LazySpecKit --max-review-loops=3 <your spec>
+```
+
+> **Bottom line:** With plain SpecKit, you implement and hope for the best. With LazySpecKit, six agents — each with a different perspective — review your code in parallel, fix what's wrong, and verify the result. You get reviewed, refined, validated code without lifting a finger.
 
 ---
 
 ## Custom Reviewers
 
-When you run `lazyspeckit init` or `lazyspeckit upgrade`, four default reviewer skill files are installed into your project:
+When you run `lazyspeckit init` or `lazyspeckit upgrade`, six default reviewer skill files are installed into your project:
 
 ```
 .lazyspeckit/reviewers/
 ├── architecture.md        # System design
 ├── code-quality.md        # Engineering craft
+├── security.md            # Application security
+├── performance.md         # Runtime efficiency
 ├── spec-compliance.md     # Requirements coverage
 └── test.md                # QA & test quality
 ```
@@ -405,10 +416,10 @@ Both prompts are installed from the same source. If your repo has both `.vscode`
 
 ```bash
 # Install a specific version
-LAZYSPECKIT_REF=v0.6.3 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/v0.6.3/install.sh)"
+LAZYSPECKIT_REF=v0.6.4 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/v0.6.4/install.sh)"
 
 # Self-update to a specific version
-LAZYSPECKIT_REF=v0.6.3 lazyspeckit self-update
+LAZYSPECKIT_REF=v0.6.4 lazyspeckit self-update
 ```
 
 ---
@@ -498,6 +509,14 @@ It lets the agent auto-select recommended answers for clarification questions wh
 
 Yes. Each recommendation includes a confidence level. High-confidence answers follow clear best practices or strong repo signals. Medium answers reflect reasonable trade-offs. Only Low-confidence (genuinely ambiguous) items are escalated to you. You can always override by answering manually instead.
 
+### What does `--max-review-loops` do?
+
+It controls how many review/fix iterations the Review & Refine phase will run (default: 6). Lower values like `--max-review-loops=2` give faster runs with fewer refinement passes. Higher values allow more thorough convergence.
+
+### Where are run audit logs?
+
+After each run, LazySpecKit writes a JSON audit log to `.lazyspeckit/runs/<timestamp>.json`. It records which phases ran, how many tasks were generated, review findings and fixes, validation results, and the final outcome. Useful for debugging, retrospectives, and tracking how the tool performs over time.
+
 ### What does LazySpecKit respect from my repo?
 
 LazySpecKit respects `agents.md` governance files. A root-level `agents.md` applies to the entire repo; nested ones apply to their directory and subdirectories. These rules are enforced across all phases. During implementation, LazySpecKit also **creates** scoped `agents.md` files if they're missing — at the root and for immediate subdirectories that contain generated code — so future runs (and other AI agents) benefit from documented project conventions.
@@ -520,8 +539,11 @@ Here is the practical difference:
 | Deterministic phase gates (must pass before next phase) | ❌ | ✔️ |
 | Auto-clarify with recommendation + confidence | ❌ | ✔️ |
 | Hands-off mode (`--auto-clarify`) | ❌ | ✔️ |
-| Multi-agent autonomous review loop | ❌ | ✔️ |
+| Multi-agent autonomous review loop | ❌ | ✔️ (6 agents, parallel) |
 | Auto-fix review findings | ❌ | ✔️ |
+| Security & performance review | ❌ | ✔️ (dedicated agents) |
+| Configurable review iterations (`--max-review-loops`) | ❌ | ✔️ |
+| Run audit log | ❌ | ✔️ (`.lazyspeckit/runs/`) |
 | Guaranteed final validation before completion | ❌ | ✔️ |
 
 **In short:**

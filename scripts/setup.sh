@@ -19,6 +19,8 @@ PROMPT_REPO_PATH="prompts/LazySpecKit.prompt.md"
 REVIEWER_FILES=(
   "reviewers/architecture.md"
   "reviewers/code-quality.md"
+  "reviewers/security.md"
+  "reviewers/performance.md"
   "reviewers/spec-compliance.md"
   "reviewers/test.md"
 )
