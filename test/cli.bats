@@ -40,7 +40,7 @@ if [[ -n "$outfile" ]]; then
   elif [[ "$url" == *lazyspeckit* ]]; then
     printf '%s\n' \
       '#!/usr/bin/env bash' \
-      'VERSION="0.6.4"' \
+      'VERSION="0.6.5"' \
       '# lazyspeckit marker' \
       'echo "lazyspeckit $VERSION"' > "$outfile"
   else

@@ -11,11 +11,11 @@ set -Eeuo pipefail
 #   lazyspeckit version
 #
 # Env:
-#   LAZYSPECKIT_REF=main|v0.6.4|<sha>   pin LazySpecKit downloads (default: main)
+#   LAZYSPECKIT_REF=main|v0.6.5|<sha>   pin LazySpecKit downloads (default: main)
 #   DEBUG=1                             bash trace
 #   NO_COLOR=1                          disable colors
 
-VERSION="0.6.4"
+VERSION="0.6.5"
 
 OWNER_REPO="Hacklone/lazy-spec-kit"
 REF="${LAZYSPECKIT_REF:-main}"
@@ -227,7 +227,7 @@ strip_ai_from_args() {
 upgrade_speckit_cli() {
   ensure_uv_tool
   info "Upgrading SpecKit CLI (specify-cli)..."
-  uv tool install specify-cli --force --from "$SPEC_KIT_GIT" >/dev/null
+  uv tool install specify-cli --force --native-tls --from "$SPEC_KIT_GIT" >/dev/null
   ok "SpecKit CLI upgraded"
 }
 
@@ -369,7 +369,7 @@ cmd_upgrade() {
 
   # Upgrade SpecKit CLI (non-fatal — prompt install should still succeed).
   info "Upgrading SpecKit CLI (specify-cli)..."
-  if uv tool install specify-cli --force --from "$SPEC_KIT_GIT" >/dev/null 2>&1; then
+  if uv tool install specify-cli --force --native-tls --from "$SPEC_KIT_GIT" >/dev/null 2>&1; then
     ok "SpecKit CLI upgraded"
   else
     warn "SpecKit CLI upgrade failed (continuing with existing version if available)"
@@ -533,7 +533,7 @@ Debug:
   NO_COLOR=1 lazyspeckit doctor --here
 
 Pin LazySpecKit downloads:
-  LAZYSPECKIT_REF=v0.6.4 lazyspeckit self-update
+  LAZYSPECKIT_REF=v0.6.5 lazyspeckit self-update
 EOF
 }
 
