@@ -273,10 +273,10 @@ Goal:
 
 ### 2) Token Safeguard
 
-- Keep the entire clarification block concise (target under ~1600 tokens).
 - Each question must be 1–3 sentences max.
-- Each recommendation must be 1-2 sentence max.
+- Each recommendation must be 1–2 sentences max.
 - No long rationales or examples.
+- Do NOT limit the number of questions to fit a token budget. Present ALL questions produced by `/speckit.clarify`.
 
 ### 3) Required Formatting
 
