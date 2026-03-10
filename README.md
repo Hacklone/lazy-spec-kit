@@ -45,6 +45,7 @@ Want the fully hands-off experience? Add `--auto-clarify`:
 - [Auto-Clarify — True Hands-Off Mode](#auto-clarify--true-hands-off-mode)
 - [Review & Refine — What Makes LazySpecKit Different](#review--refine--what-makes-lazyspeckit-different)
 - [Custom Reviewers](#custom-reviewers)
+- [Agency Integration](#agency-integration)
 - [CLI Reference](#cli-reference)
 - [Supported AI Agents](#supported-ai-agents)
 - [Environment Variables](#environment-variables)
@@ -326,6 +327,59 @@ Drop a new `.md` file into `.lazyspeckit/reviewers/` with a unique `name`. It ru
 
 ---
 
+## Agency Integration
+
+LazySpecKit integrates with [Agency](https://github.com/msitarzewski/agency-agents) — a collection of specialized AI agent definitions. Agency agents map naturally to LazySpecKit's reviewer roles and are often richer than the bundled defaults.
+
+### Agent-to-reviewer mapping
+
+| Agency agent | LazySpecKit reviewer |
+|---|---|
+| `testing/testing-reality-checker.md` | `spec-compliance.md` |
+| `engineering/engineering-security-engineer.md` | `security.md` |
+| `testing/testing-performance-benchmarker.md` | `performance.md` |
+| `testing/testing-accessibility-auditor.md` | `accessibility.md` |
+| `engineering/engineering-backend-architect.md` | `architecture.md` |
+
+### Initialize with Agency reviewers
+
+Use `--agency` during init to symlink Agency agents as reviewers instead of copying the bundled defaults. Updates to your Agency installation flow into LazySpecKit automatically.
+
+```bash
+lazyspeckit init --here --ai copilot --agency
+```
+
+By default, Agency agents are detected in `~/.claude/agents/` or `~/.github/agents/`. Override with `--agency-path`:
+
+```bash
+lazyspeckit init --here --ai copilot --agency --agency-path ~/my-agents
+```
+
+Unmapped reviewers (`code-quality.md`, `test.md`) are still installed from the bundled defaults. User-customized reviewers are never overwritten.
+
+### Add individual Agency agents
+
+Use `add-reviewer` to import a specific Agency agent as a reviewer at any time:
+
+```bash
+# Import the accessibility auditor
+lazyspeckit add-reviewer --from-agency testing/testing-accessibility-auditor.md
+
+# Import with a custom name
+lazyspeckit add-reviewer --from-agency testing-reality-checker --as my-spec-checker.md
+```
+
+The agent file is **copied** (not symlinked) with the no-interaction enforcement header injected after its YAML frontmatter. This makes it safe to further customize without affecting the upstream Agency agent.
+
+### How it works
+
+- **`init --agency`** creates **symlinks** — the Agency agent files are the single source of truth. Any updates to your Agency installation are reflected automatically.
+- **`add-reviewer --from-agency`** creates a **copy** with the no-interaction header injected — safe to edit independently.
+- Both approaches work on macOS, Linux, and Windows. On platforms where symlinks aren't supported, LazySpecKit falls back to copying with a warning.
+- Existing user-customized reviewers (files you've edited manually) are never overwritten.
+
+---
+
 ## CLI Reference
 
 ### `lazyspeckit init`
@@ -336,6 +390,13 @@ All flags are passed through to `specify init`.
 ```bash
 lazyspeckit init --here --ai copilot
 lazyspeckit init ./my-repo --ai claude
+```
+
+With `--agency`, reviewers are symlinked from your [Agency](https://github.com/msitarzewski/agency-agents) installation instead of using the bundled defaults (see [Agency Integration](#agency-integration)):
+
+```bash
+lazyspeckit init --here --ai copilot --agency
+lazyspeckit init --here --ai claude --agency --agency-path ~/my-agents
 ```
 
 ### `lazyspeckit upgrade`
@@ -381,6 +442,34 @@ Shows local and remote CLI versions.
 ```bash
 lazyspeckit version
 ```
+
+### `lazyspeckit add-reviewer`
+
+Adds an [Agency](https://github.com/msitarzewski/agency-agents) agent as a LazySpecKit reviewer. The agent file is copied into `.lazyspeckit/reviewers/` with the no-interaction enforcement header injected automatically.
+
+```bash
+# Add by full path
+lazyspeckit add-reviewer --from-agency testing/testing-reality-checker.md
+
+# Add by basename (auto-discovered)
+lazyspeckit add-reviewer --from-agency testing-performance-benchmarker
+
+# Override the installed reviewer name
+lazyspeckit add-reviewer --from-agency testing-reality-checker --as spec-checker.md
+
+# Custom Agency install location
+lazyspeckit add-reviewer --from-agency engineering-security-engineer --agency-path ~/agents
+
+# Overwrite an existing reviewer
+lazyspeckit add-reviewer --from-agency testing-reality-checker --force
+```
+
+| Flag | Description |
+|------|-------------|
+| `--from-agency <name>` | Agency agent name or path (e.g., `testing/testing-reality-checker.md`) |
+| `--as <name>` | Override the installed reviewer filename |
+| `--agency-path <dir>` | Override Agency install location (default: `~/.claude/agents/` or `~/.github/agents/`) |
+| `--force` | Overwrite an existing reviewer |
 
 ### `lazyspeckit --help`
 
@@ -520,6 +609,10 @@ After each run, LazySpecKit writes a JSON audit log to `.lazyspeckit/runs/<times
 ### What does LazySpecKit respect from my repo?
 
 LazySpecKit respects `agents.md` governance files. A root-level `agents.md` applies to the entire repo; nested ones apply to their directory and subdirectories. These rules are enforced across all phases. During implementation, LazySpecKit also **creates** scoped `agents.md` files if they're missing — at the root and for immediate subdirectories that contain generated code — so future runs (and other AI agents) benefit from documented project conventions.
+
+### What is Agency and how does it integrate with LazySpecKit?
+
+[Agency](https://github.com/msitarzewski/agency-agents) is a curated collection of specialized AI agent definitions. LazySpecKit can use Agency agents as reviewers — they map directly to LazySpecKit's reviewer roles (security, architecture, performance, etc.) and are often more detailed than the bundled defaults. Use `lazyspeckit init --agency` to symlink them, or `lazyspeckit add-reviewer --from-agency` to import individual agents. See [Agency Integration](#agency-integration) for details.
 
 ### How is LazySpecKit different from OpenSpec?
 

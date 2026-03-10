@@ -302,6 +302,193 @@ run_setup() {
   LAZYSPECKIT_REF="$REF" bash "$tmp" "$target"
 }
 
+# ---------- reviewer hash helpers (mirrored from setup.sh) ----------
+HASH_PREFIX="<!-- lazyspeckit-hash:"
+HASH_SUFFIX=" -->"
+
+content_hash() {
+  local file="${1:-}"
+  [[ -n "$file" && -f "$file" ]] || { echo ""; return 1; }
+  grep -v "^${HASH_PREFIX}" "$file" | shasum -a 256 | cut -d' ' -f1
+}
+
+stored_hash() {
+  local file="${1:-}"
+  [[ -n "$file" && -f "$file" ]] || { echo ""; return 0; }
+  local line
+  line="$(grep "^${HASH_PREFIX}" "$file" 2>/dev/null | tail -n1)" || true
+  if [[ -z "$line" ]]; then echo ""; return 0; fi
+  echo "$line" | sed "s/^${HASH_PREFIX}//" | sed "s/${HASH_SUFFIX}$//" | tr -d ' '
+}
+
+is_default_unmodified() {
+  local file="${1:-}"
+  [[ -n "$file" && -f "$file" ]] || return 1
+  local stored current
+  stored="$(stored_hash "$file")"
+  [[ -n "$stored" ]] || return 1
+  current="$(content_hash "$file")"
+  [[ "$stored" == "$current" ]]
+}
+
+# ---------- agency integration ----------
+
+# Default Agency agent → LazySpecKit reviewer mapping
+# Format: "agency/path.md:reviewer-name.md"
+AGENCY_REVIEWER_MAP=(
+  "testing/testing-reality-checker.md:spec-compliance.md"
+  "engineering/engineering-security-engineer.md:security.md"
+  "testing/testing-performance-benchmarker.md:performance.md"
+  "testing/testing-accessibility-auditor.md:accessibility.md"
+  "engineering/engineering-backend-architect.md:architecture.md"
+)
+
+NO_INTERACTION_HEADER='**You MUST NOT ask the user any questions.** Your output is findings only. If something is ambiguous, make a reasonable judgment call based on the spec, constitution, and codebase conventions — do not ask for clarification.'
+
+detect_agency_dir() {
+  local custom_path="${1:-}"
+  if [[ -n "$custom_path" ]]; then
+    [[ -d "$custom_path" ]] || return 1
+    echo "$custom_path"
+    return 0
+  fi
+  local dir
+  for dir in "$HOME/.claude/agents" "$HOME/.github/agents"; do
+    if [[ -d "$dir" ]]; then
+      echo "$dir"
+      return 0
+    fi
+  done
+  return 1
+}
+
+find_agency_agent() {
+  local agency_dir="${1:-}" agent_name="${2:-}"
+  [[ -n "$agency_dir" && -n "$agent_name" ]] || return 1
+
+  # Try exact path first (e.g. testing/testing-reality-checker.md)
+  if [[ -f "$agency_dir/$agent_name" ]]; then
+    echo "$agency_dir/$agent_name"
+    return 0
+  fi
+  # Try with .md extension
+  if [[ -f "$agency_dir/$agent_name.md" ]]; then
+    echo "$agency_dir/$agent_name.md"
+    return 0
+  fi
+  # Search by basename
+  local found
+  found="$(find "$agency_dir" -name "$(basename "$agent_name")" -type f 2>/dev/null | head -n1)"
+  if [[ -n "$found" ]]; then
+    echo "$found"
+    return 0
+  fi
+  found="$(find "$agency_dir" -name "$(basename "$agent_name" .md).md" -type f 2>/dev/null | head -n1)"
+  if [[ -n "$found" ]]; then
+    echo "$found"
+    return 0
+  fi
+  return 1
+}
+
+create_reviewer_symlink() {
+  local src="${1:-}" dst="${2:-}"
+  [[ -n "$src" && -n "$dst" ]] || die "create_reviewer_symlink: missing src/dst"
+  mkdir -p "$(dirname "$dst")"
+
+  # Remove existing file/symlink at destination
+  rm -f "$dst"
+
+  if ln -sf "$src" "$dst" 2>/dev/null; then
+    # Verify symlink was actually created (some Windows environments copy instead)
+    if [[ -L "$dst" ]]; then
+      return 0
+    fi
+    warn "Symlink not supported; created a copy instead (updates won't auto-propagate): $(basename "$dst")"
+    return 0
+  fi
+
+  # Fallback: copy
+  cp -f "$src" "$dst" || die "Failed to create reviewer: $dst"
+  warn "Symlink not supported; created a copy instead (updates won't auto-propagate): $(basename "$dst")"
+}
+
+install_agency_reviewers() {
+  local target="${1:-}" agency_dir="${2:-}" force_init="${3:-false}"
+  [[ -n "$target" && -n "$agency_dir" ]] || die "install_agency_reviewers: missing args"
+
+  info "Installing Agency agents as reviewers (from: $agency_dir)..."
+  local entry agent_path reviewer_name src
+  local linked=0 skipped=0 missing=0
+
+  for entry in "${AGENCY_REVIEWER_MAP[@]}"; do
+    agent_path="${entry%%:*}"
+    reviewer_name="${entry##*:}"
+    local dst="$target/.lazyspeckit/reviewers/$reviewer_name"
+
+    # Preserve user-customized reviewers (non-symlink, non-default)
+    # During init (force_init=true), only preserve files that have no hash stamp
+    # (user created them outside of LazySpecKit).
+    if [[ -f "$dst" && ! -L "$dst" ]]; then
+      if [[ "$force_init" == "true" ]]; then
+        # During init: only skip files that have no stamp (truly user-created)
+        local stamp
+        stamp="$(stored_hash "$dst" 2>/dev/null)"
+        if [[ -z "$stamp" ]]; then
+          warn "Keeping custom reviewer: $reviewer_name"
+          skipped=$((skipped + 1))
+          continue
+        fi
+      elif ! is_default_unmodified "$dst" 2>/dev/null; then
+        warn "Keeping custom reviewer: $reviewer_name"
+        skipped=$((skipped + 1))
+        continue
+      fi
+    fi
+
+    src="$agency_dir/$agent_path"
+    if [[ ! -f "$src" ]]; then
+      warn "Agency agent not found: $agent_path (skipping)"
+      missing=$((missing + 1))
+      continue
+    fi
+
+    create_reviewer_symlink "$src" "$dst"
+    linked=$((linked + 1))
+  done
+
+  local summary=""
+  [[ "$linked" -gt 0 ]]  && summary="${linked} linked"
+  [[ "$skipped" -gt 0 ]] && summary="${summary:+$summary, }${skipped} custom (kept)"
+  [[ "$missing" -gt 0 ]] && summary="${summary:+$summary, }${missing} not found"
+  ok "Agency reviewers: ${summary:-none mapped}"
+}
+
+copy_agency_agent_as_reviewer() {
+  local src="${1:-}" dst="${2:-}"
+  [[ -n "$src" && -n "$dst" ]] || die "copy_agency_agent_as_reviewer: missing src/dst"
+  mkdir -p "$(dirname "$dst")"
+
+  local content
+  content="$(cat "$src")"
+
+  # Inject no-interaction header after YAML frontmatter (if present)
+  if [[ "$content" == ---* ]]; then
+    local tmp_out
+    tmp_out="$(mktemp)"
+    awk -v header="$NO_INTERACTION_HEADER" '
+      BEGIN { in_fm=0; fm_done=0 }
+      NR==1 && /^---/ { in_fm=1; print; next }
+      in_fm && /^---/ { print; print ""; print header; fm_done=1; in_fm=0; next }
+      { print }
+    ' "$src" > "$tmp_out"
+    mv -f "$tmp_out" "$dst"
+  else
+    # No frontmatter — prepend header
+    printf '%s\n\n%s\n' "$NO_INTERACTION_HEADER" "$content" > "$dst"
+  fi
+}
+
 # ---------- init ----------
 run_specify_init_if_needed() {
   local target="${1:-}"; shift || true
@@ -323,12 +510,47 @@ Tip: Use --here or pass a path-like target (./repo) so the target can be inferre
 }
 
 cmd_init() {
-  local target
-  target="$(infer_target_dir_from_init_args "$@")"
+  # Parse --agency and --agency-path flags before forwarding to specify
+  local use_agency="false"
+  local agency_path_override=""
+  local filtered_args=()
 
-  run_specify_init_if_needed "$target" "$@"
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --agency)
+        use_agency="true"
+        shift
+        ;;
+      --agency-path)
+        shift
+        agency_path_override="${1:-}"
+        [[ -n "$agency_path_override" ]] || die "--agency-path requires a value"
+        shift
+        ;;
+      --agency-path=*)
+        agency_path_override="${1#--agency-path=}"
+        shift
+        ;;
+      *)
+        filtered_args+=("$1")
+        shift
+        ;;
+    esac
+  done
+
+  local target
+  target="$(infer_target_dir_from_init_args "${filtered_args[@]+"${filtered_args[@]}"}")"
+
+  run_specify_init_if_needed "$target" "${filtered_args[@]+"${filtered_args[@]}"}"
   info "Installing LazySpecKit prompts..."
   run_setup "$target"
+
+  if [[ "$use_agency" == "true" ]]; then
+    local agency_dir
+    agency_dir="$(detect_agency_dir "$agency_path_override")" \
+      || die "Agency installation not found. Install Agency agents or use --agency-path <dir>."
+    install_agency_reviewers "$target" "$agency_dir" true
+  fi
 
   echo
   ok "Done."
@@ -392,6 +614,88 @@ cmd_upgrade() {
   if detect_vscode_usage "$target"; then
     warn "VS Code: If you don’t see updates immediately, run: Developer: Reload Window"
   fi
+}
+
+# ---------- add-reviewer ----------
+cmd_add_reviewer() {
+  local agent_name="" reviewer_name="" agency_path_override="" force="false"
+  local target
+  target="$(pwd)"
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --from-agency)
+        shift
+        agent_name="${1:-}"
+        [[ -n "$agent_name" ]] || die "--from-agency requires an agent name"
+        shift
+        ;;
+      --from-agency=*)
+        agent_name="${1#--from-agency=}"
+        shift
+        ;;
+      --as)
+        shift
+        reviewer_name="${1:-}"
+        [[ -n "$reviewer_name" ]] || die "--as requires a name"
+        shift
+        ;;
+      --as=*)
+        reviewer_name="${1#--as=}"
+        shift
+        ;;
+      --agency-path)
+        shift
+        agency_path_override="${1:-}"
+        [[ -n "$agency_path_override" ]] || die "--agency-path requires a value"
+        shift
+        ;;
+      --agency-path=*)
+        agency_path_override="${1#--agency-path=}"
+        shift
+        ;;
+      --force)
+        force="true"
+        shift
+        ;;
+      *)
+        die "Unknown add-reviewer argument: $1"
+        ;;
+    esac
+  done
+
+  [[ -n "$agent_name" ]] || die "Usage: lazyspeckit add-reviewer --from-agency <agent-name> [--as <name>] [--agency-path <dir>] [--force]"
+
+  # Detect Agency installation
+  local agency_dir
+  agency_dir="$(detect_agency_dir "$agency_path_override")" \
+    || die "Agency installation not found. Install Agency agents or use --agency-path <dir>."
+
+  # Find the agent file
+  local agent_file
+  agent_file="$(find_agency_agent "$agency_dir" "$agent_name")" \
+    || die "Agent not found: $agent_name (searched in: $agency_dir)"
+
+  # Determine reviewer name
+  if [[ -z "$reviewer_name" ]]; then
+    reviewer_name="$(basename "$agent_file")"
+  fi
+  # Ensure .md extension
+  [[ "$reviewer_name" == *.md ]] || reviewer_name="${reviewer_name}.md"
+
+  local dst="$target/.lazyspeckit/reviewers/$reviewer_name"
+
+  # Check for existing file
+  if [[ -f "$dst" || -L "$dst" ]]; then
+    if [[ "$force" != "true" ]]; then
+      die "Reviewer already exists: $reviewer_name (use --force to overwrite)"
+    fi
+    warn "Overwriting existing reviewer: $reviewer_name"
+  fi
+
+  info "Adding Agency agent as reviewer: $(basename "$agent_file") → $reviewer_name"
+  copy_agency_agent_as_reviewer "$agent_file" "$dst"
+  ok "Reviewer installed: .lazyspeckit/reviewers/$reviewer_name"
 }
 
 # ---------- doctor/version/self-update ----------
@@ -511,6 +815,8 @@ lazyspeckit
 
 Commands:
   lazyspeckit init        [ANY specify init args...]
+  lazyspeckit init        --agency [--agency-path <dir>] [specify init args...]
+  lazyspeckit add-reviewer --from-agency <agent> [--as <name>] [--agency-path <dir>] [--force]
   lazyspeckit upgrade     [--here | <path>] [extra specify init args...]
   lazyspeckit doctor      [--here | <path>]
   lazyspeckit self-update
@@ -520,6 +826,12 @@ Commands:
 Examples:
   lazyspeckit init --here --ai copilot
   lazyspeckit init ./my-repo --ai claude
+  lazyspeckit init --here --ai copilot --agency
+  lazyspeckit init --here --agency --agency-path ~/my-agents
+
+  lazyspeckit add-reviewer --from-agency testing/testing-reality-checker.md
+  lazyspeckit add-reviewer --from-agency testing-performance-benchmarker --as perf.md
+  lazyspeckit add-reviewer --from-agency engineering-security-engineer --agency-path ~/agents
 
   lazyspeckit upgrade --here --ai copilot
   lazyspeckit upgrade ./my-repo --ai claude
@@ -527,6 +839,14 @@ Examples:
   lazyspeckit doctor --here
   lazyspeckit version
   lazyspeckit self-update
+
+Agency integration:
+  --agency            Use Agency agents as reviewers (symlinked for auto-updates)
+  --agency-path <dir> Override Agency install location
+                      (default: ~/.claude/agents/ or ~/.github/agents/)
+  --from-agency <a>   Agency agent name or path (e.g. testing/testing-reality-checker.md)
+  --as <name>         Override the installed reviewer filename
+  --force             Overwrite an existing reviewer
 
 Debug:
   DEBUG=1 lazyspeckit doctor --here
@@ -541,12 +861,13 @@ main() {
   local cmd="${1:-}"
   shift || true
   case "$cmd" in
-    init)        cmd_init "$@" ;;
-    upgrade)     cmd_upgrade "$@" ;;
-    doctor)      cmd_doctor "$@" ;;
-    self-update) cmd_self_update ;;
-    version)     cmd_version ;;
-    -h|--help|"") usage ;;
+    init)         cmd_init "$@" ;;
+    add-reviewer) cmd_add_reviewer "$@" ;;
+    upgrade)      cmd_upgrade "$@" ;;
+    doctor)       cmd_doctor "$@" ;;
+    self-update)  cmd_self_update ;;
+    version)      cmd_version ;;
+    -h|--help|"")  usage ;;
     *) die "Unknown command: $cmd (try --help)" ;;
   esac
 }
