@@ -439,6 +439,8 @@ Tasks must be executed sequentially.
 
 Run `/speckit.checklist` if available.
 
+If `/speckit.checklist` asks questions or requests user input, auto-answer them using context from the spec, clarification answers, and constitution. Do NOT pause or wait for user input — this phase is fully automated.
+
 Then you MUST run `/speckit.analyze` before any implementation.
 
 If `/speckit.analyze` reports any issues (critical, high, medium, or low):
