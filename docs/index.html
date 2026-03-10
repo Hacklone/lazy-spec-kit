@@ -914,7 +914,11 @@
 <span class="cmd">lazyspeckit init</span> <span class="flag">--here --ai copilot</span>
 
 <span class="comment"># For Claude Code</span>
-<span class="cmd">lazyspeckit init</span> <span class="flag">--here --ai claude</span></pre>
+<span class="cmd">lazyspeckit init</span> <span class="flag">--here --ai claude</span>
+
+<span class="comment"># Also install for Cursor or OpenCode</span>
+<span class="cmd">lazyspeckit init</span> <span class="flag">--here --ai copilot --ai cursor</span>
+<span class="cmd">lazyspeckit init</span> <span class="flag">--here --ai all</span></pre>
     </div>
 
     <p style="margin: 1.5rem 0 .75rem; font-weight: 600;">Then in your AI assistant:</p>
@@ -1326,16 +1330,16 @@ Severity guide:
     <p class="section-desc">Everything you can do with the <code>lazyspeckit</code> CLI.</p>
 
     <div class="cli-cmd">
-      <h3>lazyspeckit init <span style="color:var(--text-dim)">[--agency] [--agency-path &lt;dir&gt;] [specify&nbsp;init&nbsp;args...]</span></h3>
-      <p>Initializes SpecKit and installs LazySpecKit prompts. With <code>--agency</code>, symlinks <a href="https://github.com/msitarzewski/agency-agents">Agency</a> agents as reviewers instead of bundled defaults (updates flow through automatically). Use <code>--agency-path</code> to override the Agency install location.</p>
+      <h3>lazyspeckit init <span style="color:var(--text-dim)">[--ai &lt;agent&gt;...] [--agency] [--agency-path &lt;dir&gt;] [specify&nbsp;init&nbsp;args...]</span></h3>
+      <p>Initializes SpecKit and installs LazySpecKit prompts. Use <code>--ai</code> to select agents: <code>copilot</code>, <code>claude</code>, <code>cursor</code>, <code>opencode</code>, or <code>all</code>. With <code>--agency</code>, symlinks <a href="https://github.com/msitarzewski/agency-agents">Agency</a> agents as reviewers instead of bundled defaults.</p>
     </div>
     <div class="cli-cmd">
-      <h3>lazyspeckit upgrade <span style="color:var(--text-dim)">[--here | &lt;path&gt;]</span></h3>
-      <p>Upgrades SpecKit CLI, project files, and LazySpecKit prompts. Auto-detects all configured AI agents. SpecKit failures are non-fatal — prompts always update.</p>
+      <h3>lazyspeckit upgrade <span style="color:var(--text-dim)">[--here | &lt;path&gt;] [--ai &lt;agent&gt;...]</span></h3>
+      <p>Upgrades SpecKit CLI, project files, and LazySpecKit prompts. Auto-detects all configured agents (Copilot, Claude, Cursor, OpenCode) from directory structure. SpecKit failures are non-fatal — prompts always update.</p>
     </div>
     <div class="cli-cmd">
       <h3>lazyspeckit doctor <span style="color:var(--text-dim)">[--here | &lt;path&gt;]</span></h3>
-      <p>Shows diagnostics: versions, tools, SpecKit status, prompt file presence. Makes no changes.</p>
+      <p>Shows diagnostics: versions, installed agents, SpecKit status, and prompt file presence. Makes no changes.</p>
     </div>
     <div class="cli-cmd">
       <h3>lazyspeckit self-update</h3>
@@ -1357,20 +1361,32 @@ Severity guide:
   <div class="container">
     <p class="section-label">Supported</p>
     <h2 class="section-title">AI Agents</h2>
-    <p class="section-desc">Same prompt, different locations. Both get installed automatically.</p>
+    <p class="section-desc">All agents use the <code>--ai</code> flag. Use <code>--ai all</code> to install for every agent. <code>upgrade</code> auto-detects installed agents from directory structure.</p>
 
     <div class="agent-grid">
       <div class="agent-card">
         <h3>VS Code Copilot</h3>
         <div class="agent-flag">--ai copilot</div>
         <div class="agent-path">.github/prompts/LazySpecKit.prompt.md</div>
-        <div class="agent-tip">If <code>/LazySpecKit</code> doesn't appear, run <strong>Developer: Reload Window</strong></div>
+        <div class="agent-tip">Primary agent. If <code>/LazySpecKit</code> doesn't appear, run <strong>Developer: Reload Window</strong></div>
       </div>
       <div class="agent-card">
         <h3>Claude Code</h3>
         <div class="agent-flag">--ai claude</div>
         <div class="agent-path">.claude/commands/LazySpecKit.md</div>
-        <div class="agent-tip">If <code>/LazySpecKit</code> doesn't appear, restart your session or reopen the repo</div>
+        <div class="agent-tip">Primary agent. Restart your session or reopen the repo if the command doesn't appear</div>
+      </div>
+      <div class="agent-card">
+        <h3>Cursor</h3>
+        <div class="agent-flag">--ai cursor</div>
+        <div class="agent-path">.cursor/rules/lazyspeckit.mdc</div>
+        <div class="agent-tip">MDC format with YAML frontmatter. <code>alwaysApply: false</code> — use as an on-demand rule</div>
+      </div>
+      <div class="agent-card">
+        <h3>OpenCode</h3>
+        <div class="agent-flag">--ai opencode</div>
+        <div class="agent-path">.opencode/agent/LazySpecKit.md</div>
+        <div class="agent-tip">Standard Markdown agent file</div>
       </div>
     </div>
   </div>
@@ -1397,12 +1413,12 @@ Severity guide:
     <div class="code-block" style="margin-top: 1.5rem;">
       <div class="code-block-header">
         <span>Pin to a specific version</span>
-        <button class="copy-btn" data-copy="LAZYSPECKIT_REF=v0.6.8 lazyspeckit self-update" aria-label="Copy command">
+        <button class="copy-btn" data-copy="LAZYSPECKIT_REF=v0.6.9 lazyspeckit self-update" aria-label="Copy command">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
           Copy
         </button>
       </div>
-      <pre><span class="cmd">LAZYSPECKIT_REF</span>=<span class="string">v0.6.8</span> <span class="cmd">lazyspeckit self-update</span></pre>
+      <pre><span class="cmd">LAZYSPECKIT_REF</span>=<span class="string">v0.6.9</span> <span class="cmd">lazyspeckit self-update</span></pre>
     </div>
   </div>
 </section>

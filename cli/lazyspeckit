@@ -11,11 +11,11 @@ set -Eeuo pipefail
 #   lazyspeckit version
 #
 # Env:
-#   LAZYSPECKIT_REF=main|v0.6.8|<sha>   pin LazySpecKit downloads (default: main)
+#   LAZYSPECKIT_REF=main|v0.6.9|<sha>   pin LazySpecKit downloads (default: main)
 #   DEBUG=1                             bash trace
 #   NO_COLOR=1                          disable colors
 
-VERSION="0.6.8"
+VERSION="0.6.9"
 
 OWNER_REPO="Hacklone/lazy-spec-kit"
 REF="${LAZYSPECKIT_REF:-main}"
@@ -169,7 +169,11 @@ infer_target_simple() {
 is_speckit_inited() { [[ -d "${1:-/__missing__}/.specify" ]]; }
 detect_vscode_usage() { [[ -d "${1:-/__missing__}/.vscode" || -d "${1:-/__missing__}/.github/prompts" ]]; }
 detect_claude_usage() { [[ -d "${1:-/__missing__}/.claude" || -d "${1:-/__missing__}/.claude/commands" ]]; }
+detect_cursor_usage() { [[ -d "${1:-/__missing__}/.cursor" ]]; }
+detect_opencode_usage() { [[ -d "${1:-/__missing__}/.opencode" ]]; }
 prompt_files_present() { [[ -f "${1:-/__missing__}/.github/prompts/LazySpecKit.prompt.md" || -f "${1:-/__missing__}/.claude/commands/LazySpecKit.md" ]]; }
+cursor_prompt_present() { [[ -f "${1:-/__missing__}/.cursor/rules/lazyspeckit.mdc" ]]; }
+opencode_prompt_present() { [[ -f "${1:-/__missing__}/.opencode/agent/LazySpecKit.md" ]]; }
 
 # ---------- ai detection ----------
 extract_ai_from_args() {
@@ -190,21 +194,53 @@ extract_ai_from_args() {
 }
 
 resolve_ai_targets() {
-  # Returns space-separated list of AI targets (from --ai flag or auto-detected).
+  # Returns space-separated list of PRIMARY AI targets (copilot/claude).
+  # Reads from explicit --ai flags (skipping extra agents); falls back to auto-detect.
   local target="${1:-}"; shift || true
+  local -a primaries=()
+  local has_explicit="false"
 
-  # If --ai was explicitly provided, use that
-  local ai=""
-  ai="$(extract_ai_from_args "$@" 2>/dev/null || true)"
-  if [[ -n "$ai" ]]; then echo "$ai"; return 0; fi
+  local skip_next="false" arg
+  for arg in "$@"; do
+    if [[ "$skip_next" == "true" ]]; then
+      skip_next="false"
+      has_explicit="true"
+      if [[ "$arg" == "all" ]]; then
+        primaries+=("copilot" "claude")
+      elif ! is_extra_agent "$arg"; then
+        primaries+=("$arg")
+      fi
+      continue
+    fi
+    if [[ "$arg" == "--ai" ]]; then skip_next="true"; continue; fi
+    if [[ "$arg" == --ai=* ]]; then
+      has_explicit="true"
+      local val="${arg#--ai=}"
+      if [[ "$val" == "all" ]]; then
+        primaries+=("copilot" "claude")
+      elif ! is_extra_agent "$val"; then
+        primaries+=("$val")
+      fi
+    fi
+  done
 
-  # Auto-detect from repo structure — supports multiple
+  if [[ ${#primaries[@]} -gt 0 ]]; then
+    echo "${primaries[*]}"
+    return 0
+  fi
+
+  # Auto-detect primary agents from repo structure
   local targets=""
   if detect_vscode_usage "$target"; then targets="copilot"; fi
   if detect_claude_usage "$target"; then targets="${targets:+$targets }claude"; fi
 
   if [[ -n "$targets" ]]; then
     echo "$targets"
+    return 0
+  fi
+
+  # If user only specified extra agents (e.g. --ai cursor), no primary needed
+  if [[ "$has_explicit" == "true" ]]; then
     return 0
   fi
 
@@ -221,6 +257,132 @@ strip_ai_from_args() {
     if [[ "$arg" == --ai=* ]]; then continue; fi
     printf "%s\0" "$arg"
   done
+}
+
+# ---------- ai value classification ----------
+EXTRA_AGENTS=("cursor" "opencode")
+ALL_VALID_AI=("copilot" "claude" "cursor" "opencode")
+
+is_extra_agent() {
+  local v="${1:-}"
+  local ea
+  for ea in "${EXTRA_AGENTS[@]}"; do
+    [[ "$v" == "$ea" ]] && return 0
+  done
+  return 1
+}
+
+validate_ai_value() {
+  local v="${1:-}"
+  [[ "$v" == "all" ]] && return 0
+  local a
+  for a in "${ALL_VALID_AI[@]}"; do
+    [[ "$v" == "$a" ]] && return 0
+  done
+  die "Unknown --ai value: '$v'. Valid values: ${ALL_VALID_AI[*]}, all"
+}
+
+# ---------- extra tool prompt installation ----------
+
+install_cursor_prompt() {
+  local target="${1:-}" prompt_src="${2:-}"
+  [[ -n "$target" && -n "$prompt_src" ]] || die "install_cursor_prompt: missing args"
+  [[ -f "$prompt_src" ]] || die "install_cursor_prompt: prompt source not found: $prompt_src"
+
+  local dst="$target/.cursor/rules/lazyspeckit.mdc"
+  mkdir -p "$(dirname "$dst")"
+
+  {
+    printf '%s\n' '---'
+    printf 'description: LazySpecKit — automated spec-driven development workflow\n'
+    printf '%s\n' 'globs: []'
+    printf '%s\n' 'alwaysApply: false'
+    printf '%s\n' '---'
+    printf '\n'
+    cat "$prompt_src"
+  } > "$dst"
+
+  ok "Cursor prompt installed: .cursor/rules/lazyspeckit.mdc"
+}
+
+install_opencode_prompt() {
+  local target="${1:-}" prompt_src="${2:-}"
+  [[ -n "$target" && -n "$prompt_src" ]] || die "install_opencode_prompt: missing args"
+  [[ -f "$prompt_src" ]] || die "install_opencode_prompt: prompt source not found: $prompt_src"
+
+  local dst="$target/.opencode/agent/LazySpecKit.md"
+  mkdir -p "$(dirname "$dst")"
+  cp -f "$prompt_src" "$dst"
+
+  ok "OpenCode prompt installed: .opencode/agent/LazySpecKit.md"
+}
+
+install_extra_tool_prompts() {
+  local target="${1:-}"; shift || true
+  [[ -n "$target" ]] || die "install_extra_tool_prompts: missing target"
+  # Remaining args are the tool names (newline-separated, one per arg)
+  [[ $# -eq 0 ]] && return 0
+
+  # We need the canonical prompt file as the source. Use the copilot one
+  # (it is the same content as the claude one — both written by run_setup).
+  local prompt_src="$target/.github/prompts/LazySpecKit.prompt.md"
+  if [[ ! -f "$prompt_src" ]]; then
+    prompt_src="$target/.claude/commands/LazySpecKit.md"
+  fi
+  [[ -f "$prompt_src" ]] || die "Cannot install extra tool prompts: base prompt not found in $target"
+
+  local tool
+  for tool in "$@"; do
+    case "$tool" in
+      cursor)   install_cursor_prompt   "$target" "$prompt_src" ;;
+      opencode) install_opencode_prompt "$target" "$prompt_src" ;;
+      *) warn "Unknown tool target: $tool (skipping)" ;;
+    esac
+  done
+}
+
+resolve_extra_tool_targets() {
+  # Returns newline-separated list of extra agent targets from --ai flags,
+  # or auto-detected ones when no extra --ai is given.
+  local target="${1:-}"; shift || true
+  local -a tools=()
+  local -a explicit=()
+
+  local skip_next="false" arg
+  for arg in "$@"; do
+    if [[ "$skip_next" == "true" ]]; then
+      skip_next="false"
+      if [[ "$arg" == "all" ]]; then
+        explicit+=("cursor" "opencode")
+      elif is_extra_agent "$arg"; then
+        explicit+=("$arg")
+      fi
+      continue
+    fi
+    if [[ "$arg" == "--ai" ]]; then skip_next="true"; continue; fi
+    if [[ "$arg" == --ai=* ]]; then
+      local val="${arg#--ai=}"
+      if [[ "$val" == "all" ]]; then
+        explicit+=("cursor" "opencode")
+      elif is_extra_agent "$val"; then
+        explicit+=("$val")
+      fi
+    fi
+  done
+
+  if [[ ${#explicit[@]} -gt 0 ]]; then
+    printf "%s\n" "${explicit[@]}" | sort -u
+    return 0
+  fi
+
+  # Auto-detect from repo structure
+  detect_cursor_usage   "$target" && tools+=("cursor")
+  detect_opencode_usage "$target" && tools+=("opencode")
+
+  if [[ ${#tools[@]} -gt 0 ]]; then
+    printf "%s\n" "${tools[@]}"
+  fi
+  return 0
 }
 
 # ---------- SpecKit updates ----------
@@ -510,10 +672,11 @@ Tip: Use --here or pass a path-like target (./repo) so the target can be inferre
 }
 
 cmd_init() {
-  # Parse --agency and --agency-path flags before forwarding to specify
+  # Parse --agency, --agency-path flags; classify --ai into primary vs extra
   local use_agency="false"
   local agency_path_override=""
-  local filtered_args=()
+  local -a extra_agents=()
+  local -a filtered_args=()
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -531,6 +694,35 @@ cmd_init() {
         agency_path_override="${1#--agency-path=}"
         shift
         ;;
+      --ai)
+        shift
+        local _av="${1:-}"
+        [[ -n "$_av" ]] || die "--ai requires a value"
+        validate_ai_value "$_av"
+        if [[ "$_av" == "all" ]]; then
+          filtered_args+=("--ai" "copilot")
+          extra_agents+=("cursor" "opencode")
+        elif is_extra_agent "$_av"; then
+          extra_agents+=("$_av")
+        else
+          filtered_args+=("--ai" "$_av")
+        fi
+        shift
+        ;;
+      --ai=*)
+        local _av2="${1#--ai=}"
+        [[ -n "$_av2" ]] || die "--ai requires a value"
+        validate_ai_value "$_av2"
+        if [[ "$_av2" == "all" ]]; then
+          filtered_args+=("--ai" "copilot")
+          extra_agents+=("cursor" "opencode")
+        elif is_extra_agent "$_av2"; then
+          extra_agents+=("$_av2")
+        else
+          filtered_args+=("$1")
+        fi
+        shift
+        ;;
       *)
         filtered_args+=("$1")
         shift
@@ -544,6 +736,11 @@ cmd_init() {
   run_specify_init_if_needed "$target" "${filtered_args[@]+"${filtered_args[@]}"}"
   info "Installing LazySpecKit prompts..."
   run_setup "$target"
+
+  # Install extra agent prompts (Cursor, OpenCode, …)
+  if [[ ${#extra_agents[@]} -gt 0 ]]; then
+    install_extra_tool_prompts "$target" "${extra_agents[@]}"
+  fi
 
   if [[ "$use_agency" == "true" ]]; then
     local agency_dir
@@ -573,14 +770,24 @@ cmd_upgrade() {
 
   shift || true
 
-  # Resolve AI target(s): explicit --ai wins, otherwise auto-detect all present agents.
+  # Resolve primary AI targets: explicit --ai wins (extras filtered out), else auto-detect.
   local ai_targets=""
-  ai_targets="$(resolve_ai_targets "$target" "$@")" \
-    || die "Could not detect AI agent(s) for upgrade. Pass --ai explicitly:
+  ai_targets="$(resolve_ai_targets "$target" "$@")" || true
+
+  # Collect extra agent targets (explicit --ai cursor/opencode, then auto-detect).
+  local -a extra_tools=()
+  while IFS= read -r t; do
+    [[ -n "$t" ]] && extra_tools+=("$t")
+  done < <(resolve_extra_tool_targets "$target" "$@")
+
+  # Need at least one agent (primary or extra) to upgrade.
+  if [[ -z "$ai_targets" && ${#extra_tools[@]} -eq 0 ]]; then
+    die "Could not detect AI agent(s) for upgrade. Pass --ai explicitly:
   lazyspeckit upgrade --here --ai copilot
   lazyspeckit upgrade --here --ai claude"
+  fi
 
-  # Strip --ai from extra args so we can re-add per agent.
+  # Strip --ai from extra args so we can re-add per primary agent.
   local clean_args=()
   while IFS= read -r -d '' line; do
     clean_args+=("$line")
@@ -597,25 +804,31 @@ cmd_upgrade() {
     warn "SpecKit CLI upgrade failed (continuing with existing version if available)"
   fi
 
-  # Upgrade SpecKit project files for each detected AI agent (non-fatal).
-  local ai
-  for ai in $ai_targets; do
-    if ! upgrade_speckit_project_files "$target" ${clean_args[@]+"${clean_args[@]}"} --ai "$ai"; then
-      warn "SpecKit project upgrade for '${ai}' failed (continuing)"
-    fi
-  done
+  # Upgrade SpecKit project files for each primary AI agent (non-fatal).
+  if [[ -n "$ai_targets" ]]; then
+    local ai
+    for ai in $ai_targets; do
+      if ! upgrade_speckit_project_files "$target" ${clean_args[@]+"${clean_args[@]}"} --ai "$ai"; then
+        warn "SpecKit project upgrade for '${ai}' failed (continuing)"
+      fi
+    done
+  fi
 
   # Always install LazySpecKit prompts, regardless of SpecKit outcome.
   info "Upgrading LazySpecKit prompts..."
   run_setup "$target"
 
+  # Re-install extra agent prompts if applicable.
+  if [[ ${#extra_tools[@]} -gt 0 ]]; then
+    install_extra_tool_prompts "$target" "${extra_tools[@]}"
+  fi
+
   echo
   ok "Upgraded in: $target"
   if detect_vscode_usage "$target"; then
-    warn "VS Code: If you don’t see updates immediately, run: Developer: Reload Window"
+    warn "VS Code: If you don't see updates immediately, run: Developer: Reload Window"
   fi
 }
-
 # ---------- add-reviewer ----------
 cmd_add_reviewer() {
   local agent_name="" reviewer_name="" agency_path_override="" force="false"
@@ -801,7 +1014,11 @@ cmd_doctor() {
   echo "SpecKit initialized (.specify): $(is_speckit_inited "$target" && echo yes || echo no)"
   echo "VS Code detected:               $(detect_vscode_usage "$target" && echo yes || echo no)"
   echo "Claude detected:                $(detect_claude_usage "$target" && echo yes || echo no)"
+  echo "Cursor detected:                $(detect_cursor_usage "$target" && echo yes || echo no)"
+  echo "OpenCode detected:              $(detect_opencode_usage "$target" && echo yes || echo no)"
   echo "LazySpecKit prompt files:       $(prompt_files_present "$target" && echo yes || echo no)"
+  echo "Cursor prompt installed:        $(cursor_prompt_present "$target" && echo yes || echo no)"
+  echo "OpenCode prompt installed:      $(opencode_prompt_present "$target" && echo yes || echo no)"
   echo
 
   echo "Actions:"
@@ -814,18 +1031,29 @@ usage() {
 lazyspeckit
 
 Commands:
-  lazyspeckit init        [ANY specify init args...]
+  lazyspeckit init        [--ai <agent>...] [specify init args...]
   lazyspeckit init        --agency [--agency-path <dir>] [specify init args...]
   lazyspeckit add-reviewer --from-agency <agent> [--as <name>] [--agency-path <dir>] [--force]
-  lazyspeckit upgrade     [--here | <path>] [extra specify init args...]
+  lazyspeckit upgrade     [--here | <path>] [--ai <agent>...] [extra specify init args...]
   lazyspeckit doctor      [--here | <path>]
   lazyspeckit self-update
   lazyspeckit version
   lazyspeckit --help
 
+AI agents (--ai):
+  copilot             VS Code Copilot  (.github/prompts/LazySpecKit.prompt.md)
+  claude              Claude Code      (.claude/commands/LazySpecKit.md)
+  cursor              Cursor           (.cursor/rules/lazyspeckit.mdc)
+  opencode            OpenCode         (.opencode/agent/LazySpecKit.md)
+  all                 All of the above
+                      Upgrade auto-detects installed agents from directory structure.
+
 Examples:
   lazyspeckit init --here --ai copilot
   lazyspeckit init ./my-repo --ai claude
+  lazyspeckit init --here --ai copilot --ai cursor
+  lazyspeckit init --here --ai copilot --ai opencode
+  lazyspeckit init --here --ai all
   lazyspeckit init --here --ai copilot --agency
   lazyspeckit init --here --agency --agency-path ~/my-agents
 
@@ -834,6 +1062,7 @@ Examples:
   lazyspeckit add-reviewer --from-agency engineering-security-engineer --agency-path ~/agents
 
   lazyspeckit upgrade --here --ai copilot
+  lazyspeckit upgrade --here --ai copilot --ai cursor
   lazyspeckit upgrade ./my-repo --ai claude
 
   lazyspeckit doctor --here
@@ -853,7 +1082,7 @@ Debug:
   NO_COLOR=1 lazyspeckit doctor --here
 
 Pin LazySpecKit downloads:
-  LAZYSPECKIT_REF=v0.6.8 lazyspeckit self-update
+  LAZYSPECKIT_REF=v0.6.9 lazyspeckit self-update
 EOF
 }
 

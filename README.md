@@ -46,8 +46,8 @@ Want the fully hands-off experience? Add `--auto-clarify`:
 - [Review & Refine — What Makes LazySpecKit Different](#review--refine--what-makes-lazyspeckit-different)
 - [Custom Reviewers](#custom-reviewers)
 - [Agency Integration](#agency-integration)
-- [CLI Reference](#cli-reference)
 - [Supported AI Agents](#supported-ai-agents)
+- [CLI Reference](#cli-reference)
 - [Environment Variables](#environment-variables)
 - [Troubleshooting](#troubleshooting)
 - [FAQ](#faq)
@@ -215,7 +215,8 @@ You can always answer manually in one message: `1: A  2: B  3: Other: <text>`
 |----------|--------------------|
 | **Maximum hands-off** — trust the agent's judgment | `/LazySpecKit --auto-clarify <spec>` |
 | **Full control** — answer every question yourself | `/LazySpecKit <spec>` |
-| **Hands-off, skip review** — fastest possible run | `/LazySpecKit --auto-clarify --review=off <spec>` || **Fewer review loops** — faster review convergence | `/LazySpecKit --max-review-loops=3 <spec>` |
+| **Hands-off, skip review** — fastest possible run | `/LazySpecKit --auto-clarify --review=off <spec>` |
+| **Fewer review loops** — faster review convergence | `/LazySpecKit --max-review-loops=3 <spec>` |
 > **Bottom line:** `--auto-clarify` makes LazySpecKit the ultimate hands-off workflow. Write your spec, walk away, come back to reviewed and refined code.
 
 ---
@@ -380,6 +381,22 @@ The agent file is **copied** (not symlinked) with the no-interaction enforcement
 
 ---
 
+## Supported AI Agents
+
+All agents use the `--ai` flag. Use `--ai all` to install for every supported agent at once. `upgrade` auto-detects installed agents from the directory structure.
+
+| Agent | Flag | Prompt location | Notes |
+|-------|------|----------------|-------|
+| VS Code Copilot | `--ai copilot` | `.github/prompts/LazySpecKit.prompt.md` | If `/LazySpecKit` doesn't appear, run **Developer: Reload Window** |
+| Claude Code | `--ai claude` | `.claude/commands/LazySpecKit.md` | Restart your session or reopen the repo if the command doesn't appear |
+| Cursor | `--ai cursor` | `.cursor/rules/lazyspeckit.mdc` | MDC format with YAML frontmatter (`alwaysApply: false`) |
+| OpenCode | `--ai opencode` | `.opencode/agent/LazySpecKit.md` | Standard Markdown agent file |
+
+Copilot and Claude are **primary agents** — they drive the full SpecKit lifecycle (specify, plan, implement, validate). Cursor and OpenCode receive the same prompt file so you can use `/LazySpecKit` there too, but SpecKit project setup (`specify init`) is tied to Copilot or Claude.
+
+
+---
+
 ## CLI Reference
 
 ### `lazyspeckit init`
@@ -397,6 +414,22 @@ With `--agency`, reviewers are symlinked from your [Agency](https://github.com/m
 ```bash
 lazyspeckit init --here --ai copilot --agency
 lazyspeckit init --here --ai claude --agency --agency-path ~/my-agents
+```
+
+Additional agents (Cursor, OpenCode) can be added with repeatable `--ai` flags:
+
+```bash
+# Also install for Cursor
+lazyspeckit init --here --ai copilot --ai cursor
+
+# Also install for OpenCode
+lazyspeckit init --here --ai copilot --ai opencode
+
+# Install for all supported agents at once
+lazyspeckit init --here --ai all
+
+# Combine any agents
+lazyspeckit init --here --ai copilot --ai cursor --ai opencode
 ```
 
 ### `lazyspeckit upgrade`
@@ -417,7 +450,12 @@ lazyspeckit upgrade --here
 # Explicit
 lazyspeckit upgrade --here --ai copilot
 lazyspeckit upgrade ./my-repo --ai claude
+
+# Also upgrade a specific extra agent
+lazyspeckit upgrade --here --ai copilot --ai cursor
 ```
+
+`upgrade` auto-detects installed agents: if a `.cursor/` or `.opencode/` directory exists in the repo, the corresponding prompt is updated automatically.
 
 ### `lazyspeckit doctor`
 
@@ -477,19 +515,6 @@ Shows all commands and examples.
 
 ---
 
-## Supported AI Agents
-
-| Agent | Flag | Prompt location |
-|-------|------|----------------|
-| VS Code Copilot | `--ai copilot` | `.github/prompts/LazySpecKit.prompt.md` |
-| Claude Code | `--ai claude` | `.claude/commands/LazySpecKit.md` |
-
-Both prompts are installed from the same source. If your repo has both `.vscode`/`.github/prompts` and `.claude` directories, `upgrade` handles both automatically.
-
-**VS Code users:** If `/LazySpecKit` doesn't appear after init or upgrade, run **Developer: Reload Window** (`Cmd+Shift+P` → "Reload Window").
-
-**Claude Code users:** Restart your session or reopen the repository.
-
 ---
 
 ## Environment Variables
@@ -505,10 +530,10 @@ Both prompts are installed from the same source. If your repo has both `.vscode`
 
 ```bash
 # Install a specific version
-LAZYSPECKIT_REF=v0.6.8 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/v0.6.8/install.sh)"
+LAZYSPECKIT_REF=v0.6.9 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/v0.6.9/install.sh)"
 
 # Self-update to a specific version
-LAZYSPECKIT_REF=v0.6.8 lazyspeckit self-update
+LAZYSPECKIT_REF=v0.6.9 lazyspeckit self-update
 ```
 
 ---
@@ -665,6 +690,8 @@ rm ~/bin/lazyspeckit
 ```bash
 rm .github/prompts/LazySpecKit.prompt.md
 rm .claude/commands/LazySpecKit.md
+rm .cursor/rules/lazyspeckit.mdc
+rm .opencode/agent/LazySpecKit.md
 ```
 
 ---

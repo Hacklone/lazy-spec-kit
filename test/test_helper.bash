@@ -197,3 +197,24 @@ create_bare_repo() {
   mkdir -p "$dir"
   echo "$dir"
 }
+
+# Create a test repo with .cursor/ dir (simulating a Cursor project)
+create_cursor_repo() {
+  local dir="${1:-$TEST_TMPDIR/repo}"
+  mkdir -p "$dir/.specify" "$dir/.cursor"
+  echo "$dir"
+}
+
+# Create a test repo with .opencode/ dir (simulating an OpenCode project)
+create_opencode_repo() {
+  local dir="${1:-$TEST_TMPDIR/repo}"
+  mkdir -p "$dir/.specify" "$dir/.opencode"
+  echo "$dir"
+}
+
+# Create a test repo with both .cursor/ and .opencode/
+create_cursor_opencode_repo() {
+  local dir="${1:-$TEST_TMPDIR/repo}"
+  mkdir -p "$dir/.specify" "$dir/.cursor" "$dir/.opencode"
+  echo "$dir"
+}

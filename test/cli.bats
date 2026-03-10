@@ -44,7 +44,7 @@ if [[ -n "$outfile" ]]; then
   elif [[ "$url" == *lazyspeckit* ]]; then
     printf '%s\n' \
       '#!/usr/bin/env bash' \
-      'VERSION="0.6.8"' \
+      'VERSION="0.6.9"' \
       '# lazyspeckit marker' \
       'echo "lazyspeckit $VERSION"' > "$outfile"
   else
@@ -2391,4 +2391,434 @@ AGENT
   run run_cli init --here --ai copilot --agency
   [ "$status" -ne 0 ]
   [[ "$output" == *"Agency installation not found"* ]]
+}
+
+# ============================================================
+# Extra AI agents (Cursor / OpenCode)
+# ============================================================
+
+# ---- detect_cursor_usage ----
+
+@test "cli: detect_cursor_usage returns true when .cursor dir exists" {
+  local repo
+  repo="$(create_cursor_repo)"
+  run bash -c '
+    detect_cursor_usage() { [[ -d "${1:-/__missing__}/.cursor" ]]; }
+    detect_cursor_usage "'"$repo"'" && echo yes || echo no
+  '
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"yes"* ]]
+}
+
+@test "cli: detect_cursor_usage returns false without .cursor dir" {
+  local repo
+  repo="$(create_bare_repo)"
+  run bash -c '
+    detect_cursor_usage() { [[ -d "${1:-/__missing__}/.cursor" ]]; }
+    detect_cursor_usage "'"$repo"'" && echo yes || echo no
+  '
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"no"* ]]
+}
+
+# ---- detect_opencode_usage ----
+
+@test "cli: detect_opencode_usage returns true when .opencode dir exists" {
+  local repo
+  repo="$(create_opencode_repo)"
+  run bash -c '
+    detect_opencode_usage() { [[ -d "${1:-/__missing__}/.opencode" ]]; }
+    detect_opencode_usage "'"$repo"'" && echo yes || echo no
+  '
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"yes"* ]]
+}
+
+@test "cli: detect_opencode_usage returns false without .opencode dir" {
+  local repo
+  repo="$(create_bare_repo)"
+  run bash -c '
+    detect_opencode_usage() { [[ -d "${1:-/__missing__}/.opencode" ]]; }
+    detect_opencode_usage "'"$repo"'" && echo yes || echo no
+  '
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"no"* ]]
+}
+
+# ---- cursor_prompt_present / opencode_prompt_present ----
+
+@test "cli: cursor_prompt_present returns true when .mdc exists" {
+  local repo="$TEST_TMPDIR/cursor_repo"
+  mkdir -p "$repo/.cursor/rules"
+  touch "$repo/.cursor/rules/lazyspeckit.mdc"
+  run bash -c '
+    cursor_prompt_present() { [[ -f "${1:-/__missing__}/.cursor/rules/lazyspeckit.mdc" ]]; }
+    cursor_prompt_present "'"$repo"'" && echo yes || echo no
+  '
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"yes"* ]]
+}
+
+@test "cli: cursor_prompt_present returns false when .mdc absent" {
+  local repo
+  repo="$(create_cursor_repo)"
+  run bash -c '
+    cursor_prompt_present() { [[ -f "${1:-/__missing__}/.cursor/rules/lazyspeckit.mdc" ]]; }
+    cursor_prompt_present "'"$repo"'" && echo yes || echo no
+  '
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"no"* ]]
+}
+
+@test "cli: opencode_prompt_present returns true when LazySpecKit.md exists" {
+  local repo="$TEST_TMPDIR/opencode_repo"
+  mkdir -p "$repo/.opencode/agent"
+  touch "$repo/.opencode/agent/LazySpecKit.md"
+  run bash -c '
+    opencode_prompt_present() { [[ -f "${1:-/__missing__}/.opencode/agent/LazySpecKit.md" ]]; }
+    opencode_prompt_present "'"$repo"'" && echo yes || echo no
+  '
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"yes"* ]]
+}
+
+@test "cli: opencode_prompt_present returns false when file absent" {
+  local repo
+  repo="$(create_opencode_repo)"
+  run bash -c '
+    opencode_prompt_present() { [[ -f "${1:-/__missing__}/.opencode/agent/LazySpecKit.md" ]]; }
+    opencode_prompt_present "'"$repo"'" && echo yes || echo no
+  '
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"no"* ]]
+}
+
+# ---- validate_ai_value ----
+
+@test "cli: validate_ai_value accepts copilot" {
+  run run_cli init --here --ai copilot
+  [[ "$output" != *"Unknown --ai"* ]]
+}
+
+@test "cli: validate_ai_value accepts cursor" {
+  run run_cli init --here --ai copilot --ai cursor
+  [[ "$output" != *"Unknown --ai"* ]]
+}
+
+@test "cli: validate_ai_value accepts opencode" {
+  run run_cli init --here --ai copilot --ai opencode
+  [[ "$output" != *"Unknown --ai"* ]]
+}
+
+@test "cli: validate_ai_value rejects unknown value" {
+  run run_cli init --here --ai vscode
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"Unknown --ai"* ]]
+}
+
+@test "cli: is_extra_agent returns true for cursor" {
+  run bash -c '
+    EXTRA_AGENTS=("cursor" "opencode")
+    is_extra_agent() {
+      local v="${1:-}" ea
+      for ea in "${EXTRA_AGENTS[@]}"; do [[ "$v" == "$ea" ]] && return 0; done
+      return 1
+    }
+    is_extra_agent cursor && echo yes || echo no
+  '
+  [ "$status" -eq 0 ]
+  [[ "$output" == "yes" ]]
+}
+
+@test "cli: is_extra_agent returns false for copilot" {
+  run bash -c '
+    EXTRA_AGENTS=("cursor" "opencode")
+    is_extra_agent() {
+      local v="${1:-}" ea
+      for ea in "${EXTRA_AGENTS[@]}"; do [[ "$v" == "$ea" ]] && return 0; done
+      return 1
+    }
+    is_extra_agent copilot && echo yes || echo no
+  '
+  [ "$status" -eq 0 ]
+  [[ "$output" == "no" ]]
+}
+
+# ---- cmd_init --ai (extra agents) ----
+
+@test "cli: init --ai cursor creates .cursor/rules/lazyspeckit.mdc" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  run run_cli init --here --ai copilot --ai cursor
+  [ "$status" -eq 0 ]
+  [ -f "$repo/.cursor/rules/lazyspeckit.mdc" ]
+}
+
+@test "cli: init --ai cursor mdc file has YAML frontmatter" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  run run_cli init --here --ai copilot --ai cursor
+  [ "$status" -eq 0 ]
+  local mdc="$repo/.cursor/rules/lazyspeckit.mdc"
+  [ -f "$mdc" ]
+  grep -q "^---" "$mdc"
+  grep -q "alwaysApply: false" "$mdc"
+  grep -q "globs: \[\]" "$mdc"
+}
+
+@test "cli: init --ai cursor mdc file contains prompt body" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  run run_cli init --here --ai copilot --ai cursor
+  [ "$status" -eq 0 ]
+  local mdc="$repo/.cursor/rules/lazyspeckit.mdc"
+  [ -f "$mdc" ]
+  # The fake setup.sh writes "LazySpecKit speckit prompt" as the prompt content
+  grep -q "LazySpecKit speckit prompt" "$mdc"
+}
+
+@test "cli: init --ai opencode creates .opencode/agent/LazySpecKit.md" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  run run_cli init --here --ai copilot --ai opencode
+  [ "$status" -eq 0 ]
+  [ -f "$repo/.opencode/agent/LazySpecKit.md" ]
+}
+
+@test "cli: init --ai opencode file contains prompt body" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  run run_cli init --here --ai copilot --ai opencode
+  [ "$status" -eq 0 ]
+  local md="$repo/.opencode/agent/LazySpecKit.md"
+  [ -f "$md" ]
+  grep -q "LazySpecKit speckit prompt" "$md"
+}
+
+@test "cli: init --ai all creates both cursor and opencode prompts" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  run run_cli init --here --ai all
+  [ "$status" -eq 0 ]
+  [ -f "$repo/.cursor/rules/lazyspeckit.mdc" ]
+  [ -f "$repo/.opencode/agent/LazySpecKit.md" ]
+}
+
+@test "cli: init --ai cursor --ai opencode creates both prompts" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  run run_cli init --here --ai copilot --ai cursor --ai opencode
+  [ "$status" -eq 0 ]
+  [ -f "$repo/.cursor/rules/lazyspeckit.mdc" ]
+  [ -f "$repo/.opencode/agent/LazySpecKit.md" ]
+}
+
+@test "cli: init --ai cursor/opencode prints success messages" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  run run_cli init --here --ai copilot --ai cursor --ai opencode
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Cursor prompt installed"* ]]
+  [[ "$output" == *"OpenCode prompt installed"* ]]
+}
+
+@test "cli: init without --ai cursor/opencode does not create extra files" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  run run_cli init --here --ai copilot
+  [ "$status" -eq 0 ]
+  [ ! -f "$repo/.cursor/rules/lazyspeckit.mdc" ]
+  [ ! -f "$repo/.opencode/agent/LazySpecKit.md" ]
+}
+
+@test "cli: init --ai cursor does not pass cursor to specify" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  # Verify that --ai cursor never reaches 'specify init' (which doesn't understand it)
+  run run_cli init --here --ai copilot --ai cursor
+  [ "$status" -eq 0 ]
+  # The fake specify echoes its args; cursor should not appear in specify output
+  [[ "$output" != *"specify"*"cursor"* ]]
+}
+
+# ---- cmd_upgrade --ai (extra agents) ----
+
+@test "cli: upgrade --ai cursor installs cursor prompt" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  create_fake_specify
+  # Pre-install a prompt so upgrade has something to pick up
+  mkdir -p "$repo/.github/prompts"
+  echo "LazySpecKit speckit prompt" > "$repo/.github/prompts/LazySpecKit.prompt.md"
+  run run_cli upgrade --here --ai copilot --ai cursor
+  [ "$status" -eq 0 ]
+  [ -f "$repo/.cursor/rules/lazyspeckit.mdc" ]
+}
+
+@test "cli: upgrade --ai opencode installs opencode prompt" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  create_fake_specify
+  run run_cli upgrade --here --ai copilot --ai opencode
+  [ "$status" -eq 0 ]
+  [ -f "$repo/.opencode/agent/LazySpecKit.md" ]
+}
+
+@test "cli: upgrade auto-detects cursor when .cursor dir exists" {
+  local repo
+  repo="$(create_cursor_repo)"
+  cd "$repo"
+  create_fake_specify
+  mkdir -p "$repo/.github/prompts"
+  echo "LazySpecKit speckit prompt" > "$repo/.github/prompts/LazySpecKit.prompt.md"
+  run run_cli upgrade --here --ai copilot
+  [ "$status" -eq 0 ]
+  [ -f "$repo/.cursor/rules/lazyspeckit.mdc" ]
+}
+
+@test "cli: upgrade auto-detects opencode when .opencode dir exists" {
+  local repo
+  repo="$(create_opencode_repo)"
+  cd "$repo"
+  create_fake_specify
+  run run_cli upgrade --here --ai copilot
+  [ "$status" -eq 0 ]
+  [ -f "$repo/.opencode/agent/LazySpecKit.md" ]
+}
+
+@test "cli: upgrade auto-detects both cursor and opencode" {
+  local repo
+  repo="$(create_cursor_opencode_repo)"
+  cd "$repo"
+  create_fake_specify
+  run run_cli upgrade --here --ai copilot
+  [ "$status" -eq 0 ]
+  [ -f "$repo/.cursor/rules/lazyspeckit.mdc" ]
+  [ -f "$repo/.opencode/agent/LazySpecKit.md" ]
+}
+
+@test "cli: upgrade without cursor/opencode dirs creates no extra files" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  create_fake_specify
+  run run_cli upgrade --here --ai copilot
+  [ "$status" -eq 0 ]
+  [ ! -f "$repo/.cursor/rules/lazyspeckit.mdc" ]
+  [ ! -f "$repo/.opencode/agent/LazySpecKit.md" ]
+}
+
+# ---- cmd_doctor cursor/opencode output ----
+
+@test "cli: doctor shows Cursor detected yes when .cursor exists" {
+  local repo
+  repo="$(create_cursor_repo)"
+  cd "$repo"
+  run run_cli doctor --here
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Cursor detected"* ]]
+  [[ "$output" == *"Cursor detected"*"yes"* ]]
+}
+
+@test "cli: doctor shows Cursor detected no without .cursor" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  run run_cli doctor --here
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Cursor detected"* ]]
+  [[ "$output" == *"Cursor detected"*"no"* ]]
+}
+
+@test "cli: doctor shows OpenCode detected yes when .opencode exists" {
+  local repo
+  repo="$(create_opencode_repo)"
+  cd "$repo"
+  run run_cli doctor --here
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"OpenCode detected"*"yes"* ]]
+}
+
+@test "cli: doctor shows OpenCode detected no without .opencode" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  run run_cli doctor --here
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"OpenCode detected"*"no"* ]]
+}
+
+@test "cli: doctor shows Cursor prompt installed yes after init --ai cursor" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  create_fake_specify
+  run run_cli init --here --ai copilot --ai cursor
+  [ "$status" -eq 0 ]
+  run run_cli doctor --here
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Cursor prompt installed"*"yes"* ]]
+}
+
+@test "cli: doctor shows Cursor prompt installed no before cursor install" {
+  local repo
+  repo="$(create_cursor_repo)"
+  cd "$repo"
+  run run_cli doctor --here
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Cursor prompt installed"*"no"* ]]
+}
+
+@test "cli: doctor shows OpenCode prompt installed yes after init --ai opencode" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  create_fake_specify
+  run run_cli init --here --ai copilot --ai opencode
+  [ "$status" -eq 0 ]
+  run run_cli doctor --here
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"OpenCode prompt installed"*"yes"* ]]
+}
+
+@test "cli: doctor shows OpenCode prompt installed no before opencode install" {
+  local repo
+  repo="$(create_opencode_repo)"
+  cd "$repo"
+  run run_cli doctor --here
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"OpenCode prompt installed"*"no"* ]]
+}
+
+# ---- usage ----
+
+@test "cli: usage lists cursor and opencode as --ai values" {
+  run run_cli --help
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"cursor"* ]]
+  [[ "$output" == *"opencode"* ]]
+}
+
+@test "cli: usage includes --ai all example" {
+  run run_cli --help
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"--ai all"* ]]
+}
+
+@test "cli: usage includes AI agents section" {
+  run run_cli --help
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"AI agents (--ai)"* ]]
 }
