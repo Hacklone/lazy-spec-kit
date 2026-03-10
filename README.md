@@ -161,9 +161,9 @@ When you run `/LazySpecKit <spec>`, it orchestrates the full SpecKit lifecycle a
 | **Spec Summary** | Prints a concise summary of what will be built | No |
 | **Plan** | Generates implementation plan | No |
 | **Tasks** | Breaks plan into sequential tasks | No |
-| **Quality Gates** | Runs `/speckit.checklist` + `/speckit.analyze`, auto-fixes spec issues | No |
+| **Quality Gates** | Runs `/speckit.checklist` + `/speckit.analyze` with multi-perspective checks (architecture, security, performance, UX), auto-fixes spec issues | No |
 | **Governance** | Creates scoped `agents.md` governance files if missing (root + immediate subdirectories) | No |
-| **Implement** | Executes tasks in a fresh session, following `agents.md` rules | No |
+| **Implement** | Executes tasks in order, following `agents.md` rules | No |
 | **Validate** | Runs detected lint / typecheck / tests / build | No |
 | **Review & Refine** | Six AI agents review from different perspectives — architecture, quality, security, performance, spec compliance, tests — and **auto-fix** findings (up to 6 loops, configurable via `--max-review-loops`) | No |
 | **Final Validation** | Full validation suite re-run to guarantee green before completion | No |
@@ -247,7 +247,7 @@ If a finding can't be resolved safely, LazySpecKit stops and tells you exactly w
 ### Why this matters
 
 - **Multiple perspectives** — Six agents catch different classes of problems that a single reviewer would miss.
-- **Parallel execution** — All reviewers run simultaneously for fast feedback.
+- **Parallel execution** — All reviewers run simultaneously when the environment supports it (e.g., Claude Code), or sequentially otherwise (e.g., VS Code Copilot).
 - **Not just review, but refinement** — Issues are fixed in place, not dumped on you as a TODO list.
 - **Iterative convergence** — Fix loops continue until the agents agree the code is clean.
 - **Safe by design** — Every fix is re-validated; regressions are caught and reverted.
@@ -416,10 +416,10 @@ Both prompts are installed from the same source. If your repo has both `.vscode`
 
 ```bash
 # Install a specific version
-LAZYSPECKIT_REF=v0.6.7 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/v0.6.7/install.sh)"
+LAZYSPECKIT_REF=v0.6.8 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/v0.6.8/install.sh)"
 
 # Self-update to a specific version
-LAZYSPECKIT_REF=v0.6.7 lazyspeckit self-update
+LAZYSPECKIT_REF=v0.6.8 lazyspeckit self-update
 ```
 
 ---

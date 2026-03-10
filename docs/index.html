@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LazySpecKit — SpecKit without babysitting + multi-agent review</title>
-  <meta name="description" content="Write your spec. Answer questions. LazySpecKit orchestrates GitHub SpecKit end-to-end, then four AI agents review and auto-fix your code from different perspectives.">
+  <meta name="description" content="Write your spec. Answer questions. LazySpecKit orchestrates GitHub SpecKit end-to-end, then six AI agents review and auto-fix your code from different perspectives.">
   <meta name="theme-color" content="#0ff0fc">
   <meta property="og:title" content="LazySpecKit ⚡">
-  <meta property="og:description" content="SpecKit without babysitting. One command to spec, plan, implement, validate — then four AI agents review and refine the result.">
+  <meta property="og:description" content="SpecKit without babysitting. One command to spec, plan, implement, validate — then six AI agents review and refine the result.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://hacklone.github.io/lazy-spec-kit/">
   <meta property="og:image" content="https://hacklone.github.io/lazy-spec-kit/og-image.png">
@@ -819,7 +819,7 @@
       <div class="card">
         <div class="card-icon">⚡</div>
         <h3>LazySpecKit Adds</h3>
-        <p>Full automation plus a <strong>multi-agent review & refine</strong> phase. Four AI agents audit your code from different perspectives and auto-fix issues.</p>
+        <p>Full automation plus a <strong>multi-agent review & refine</strong> phase. Six AI agents audit your code from different perspectives and auto-fix issues.</p>
       </div>
     </div>
   </div>
@@ -992,12 +992,12 @@
       <div class="timeline-step">
         <div class="step-label">Phase 5</div>
         <h3>Quality Gates <span class="badge-auto">automatic</span></h3>
-        <p>Runs <code>/speckit.checklist</code> and <code>/speckit.analyze</code>. Auto-fixes spec issues until clean.</p>
+        <p>Runs <code>/speckit.checklist</code> and <code>/speckit.analyze</code> with multi-perspective checks (architecture, security, performance, UX). Auto-fixes spec issues until clean.</p>
       </div>
       <div class="timeline-step">
         <div class="step-label">Phase 6</div>
         <h3>Implement <span class="badge-auto">automatic</span></h3>
-        <p>Executes all tasks in a fresh implementation session. Strict, in-order.</p>
+        <p>Executes all tasks strictly in order.</p>
       </div>
       <div class="timeline-step">
         <div class="step-label">Phase 7</div>
@@ -1007,7 +1007,7 @@
       <div class="timeline-step">
         <div class="step-label">Phase 8</div>
         <h3>Review & Refine <span class="badge-auto">automatic</span></h3>
-        <p>Four AI agents — architecture, code quality, spec compliance, tests — review the code from different perspectives and <strong>auto-fix</strong> Critical/High findings. Up to 3 loops until clean.</p>
+        <p>Six AI agents — architecture, code quality, security, performance, spec compliance, tests — review the code from different perspectives and <strong>auto-fix</strong> Critical/High findings. Up to 6 loops until clean.</p>
       </div>
       <div class="timeline-step">
         <div class="step-label">Phase 9</div>
@@ -1111,7 +1111,7 @@
   <div class="container">
     <p class="section-label">Beyond SpecKit</p>
     <h2 class="section-title">Multi-Agent Review & Refine</h2>
-    <p class="section-desc">SpecKit stops after implementation and validation. <strong style="color:var(--text)">LazySpecKit keeps going.</strong> Four independent AI agents — each with a different perspective — review your code <em>and fix what they find</em>.</p>
+    <p class="section-desc">SpecKit stops after implementation and validation. <strong style="color:var(--text)">LazySpecKit keeps going.</strong> Six independent AI agents — each with a different perspective — review your code <em>and fix what they find</em>.</p>
 
     <div class="cards">
       <div class="card">
@@ -1123,6 +1123,16 @@
         <div class="card-icon">✨</div>
         <h3>Code Quality Reviewer</h3>
         <p>Checks readability, idiomatic patterns, error handling, duplication, and engineering best practices.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔒</div>
+        <h3>Security Reviewer</h3>
+        <p>Identifies injection vulnerabilities, missing auth checks, credential leaks, and input validation gaps.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">⚡</div>
+        <h3>Performance Reviewer</h3>
+        <p>Catches N+1 queries, missing indexes, redundant computation, memory leaks, and resource waste.</p>
       </div>
       <div class="card">
         <div class="card-icon">📋</div>
@@ -1142,7 +1152,7 @@
         <div class="timeline-step">
           <div class="step-label">Step 1</div>
           <h3>Analyze</h3>
-          <p>All four agents review the implemented changes from their perspective. Findings are categorized: Critical / High / Medium / Low.</p>
+          <p>All six agents review the implemented changes from their perspective. Findings are categorized: Critical / High / Medium / Low.</p>
         </div>
         <div class="timeline-step">
           <div class="step-label">Step 2</div>
@@ -1157,7 +1167,7 @@
         <div class="timeline-step">
           <div class="step-label">Step 4</div>
           <h3>Iterate</h3>
-          <p>Agents review again — up to 3 loops — until no Critical or High findings remain. Then a final validation gate confirms green.</p>
+          <p>Agents review again — up to 6 loops — until no Critical or High findings remain. Then a final validation gate confirms green.</p>
         </div>
       </div>
     </div>
@@ -1179,7 +1189,7 @@
           <li>Everything SpecKit does, fully automated</li>
           <li>One command — answer questions once (or use auto-clarify), done</li>
           <li>Auto-clarify: agent answers its own questions when confident</li>
-          <li>Four AI agents review from different perspectives</li>
+          <li>Six AI agents review from different perspectives</li>
           <li>Issues are auto-fixed, not just reported</li>
           <li>Iterative convergence: review → fix → validate loops</li>
           <li>Final validation gate ensures green before completion</li>
@@ -1196,7 +1206,7 @@
       <p class="section-label">Extensible</p>
       <h3 style="font-size: clamp(1.3rem, 3vw, 1.7rem); font-weight: 700; letter-spacing: -0.02em; margin-bottom: .75rem; text-align: left;">Custom Reviewers</h3>
       <p style="color: var(--text-muted); font-size: .95rem; max-width: 640px; margin-bottom: 2rem; line-height: 1.7;">
-        Four default reviewer skill files are installed during <code style="font-family: var(--font-mono); font-size: .85rem; color: var(--accent);">lazyspeckit init</code>. Edit any default to tune its behavior, or add new <code style="font-family: var(--font-mono); font-size: .85rem; color: var(--accent);">.md</code> files to create additional reviewers.
+        Six default reviewer skill files are installed during <code style="font-family: var(--font-mono); font-size: .85rem; color: var(--accent);">lazyspeckit init</code>. Edit any default to tune its behavior, or add new <code style="font-family: var(--font-mono); font-size: .85rem; color: var(--accent);">.md</code> files to create additional reviewers.
       </p>
 
       <div class="code-block" style="margin-bottom: 2rem;">
@@ -1205,6 +1215,8 @@
         </div>
         <pre>├── architecture.md        <span class="comment"># System design</span>
 ├── code-quality.md        <span class="comment"># Engineering craft</span>
+├── security.md            <span class="comment"># Application security</span>
+├── performance.md         <span class="comment"># Runtime efficiency</span>
 ├── spec-compliance.md     <span class="comment"># Requirements coverage</span>
 └── test.md                <span class="comment"># QA &amp; test quality</span></pre>
       </div>
@@ -1222,25 +1234,25 @@
 
       <div class="code-block">
         <div class="code-block-header">
-          <span>.lazyspeckit/reviewers/security.md</span>
+          <span>.lazyspeckit/reviewers/accessibility.md</span>
         </div>
         <pre><span class="comment">---</span>
-<span class="cmd">name</span>: <span class="string">Security Reviewer</span>
-<span class="cmd">perspective</span>: <span class="string">Application security and vulnerability prevention</span>
+<span class="cmd">name</span>: <span class="string">Accessibility Reviewer</span>
+<span class="cmd">perspective</span>: <span class="string">WCAG compliance and inclusive UX</span>
 <span class="comment">---</span>
 
 Focus on:
-- Input validation and sanitization
-- Authentication and authorization boundaries
-- Secret handling (no hardcoded credentials)
-- SQL injection, XSS, CSRF, path traversal
-- Dependency vulnerabilities (known CVEs)
+- Semantic HTML and ARIA attributes
+- Keyboard navigation and focus management
+- Color contrast ratios (WCAG AA minimum)
+- Screen reader compatibility
+- Alt text for images and media
 
 Severity guide:
-- <span class="flag">Critical</span>: exploitable vulnerability, credential leak
-- <span class="flag">High</span>: missing auth check, unsanitized user input
-- <span class="flag">Medium</span>: missing rate limiting, overly permissive CORS
-- <span class="flag">Low</span>: informational security best practices</pre>
+- <span class="flag">Critical</span>: interactive element unreachable by keyboard
+- <span class="flag">High</span>: missing ARIA labels on form controls
+- <span class="flag">Medium</span>: insufficient color contrast
+- <span class="flag">Low</span>: missing skip-navigation link</pre>
       </div>
 
       <div style="margin-top: 1.5rem; display: grid; grid-template-columns: auto 1fr; gap: .75rem 1rem; font-size: .88rem; color: var(--text-muted); line-height: 1.6;">
@@ -1330,12 +1342,12 @@ Severity guide:
     <div class="code-block" style="margin-top: 1.5rem;">
       <div class="code-block-header">
         <span>Pin to a specific version</span>
-        <button class="copy-btn" data-copy="LAZYSPECKIT_REF=v0.6.7 lazyspeckit self-update" aria-label="Copy command">
+        <button class="copy-btn" data-copy="LAZYSPECKIT_REF=v0.6.8 lazyspeckit self-update" aria-label="Copy command">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
           Copy
         </button>
       </div>
-      <pre><span class="cmd">LAZYSPECKIT_REF</span>=<span class="string">v0.6.7</span> <span class="cmd">lazyspeckit self-update</span></pre>
+      <pre><span class="cmd">LAZYSPECKIT_REF</span>=<span class="string">v0.6.8</span> <span class="cmd">lazyspeckit self-update</span></pre>
     </div>
   </div>
 </section>
@@ -1411,7 +1423,7 @@ Severity guide:
       <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
         What is Review & Refine? Isn't LazySpecKit just a SpecKit wrapper?
       </div>
-      <div class="faq-a">No — LazySpecKit adds a full post-implementation phase that SpecKit doesn't have. After implementation and validation, four independent AI agents (architecture, code quality, spec compliance, tests) review the code from different perspectives, <strong>automatically fix</strong> Critical and High issues, re-validate, and loop until clean. It's review <em>and</em> refinement, not just reporting.</div>
+      <div class="faq-a">No — LazySpecKit adds a full post-implementation phase that SpecKit doesn't have. After implementation and validation, six independent AI agents (architecture, code quality, security, performance, spec compliance, tests) review the code from different perspectives, <strong>automatically fix</strong> Critical and High issues, re-validate, and loop until clean. It's review <em>and</em> refinement, not just reporting.</div>
     </div>
     <div class="faq-item">
       <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">

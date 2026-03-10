@@ -164,6 +164,22 @@ If tasks contradict the specification:
 - Stop.
 - Escalate via Failure Escalation Protocol.
 
+## Spec Artifact Modification Rules
+
+During spec validation/fix loops (Phase 5), you may ONLY modify spec artifacts — the plan, task list, and related SpecKit-managed files. Specifically:
+
+**Allowed:**
+- Reorder tasks to fix dependency issues.
+- Add missing tasks that the spec clearly implies but were omitted.
+- Refine task descriptions for clarity or completeness.
+- Fix inconsistencies between tasks and the approved spec.
+
+**NOT allowed:**
+- Modify production/source code.
+- Change the original spec text.
+- Add scope beyond what the spec and clarification answers define.
+- Remove tasks unless they directly contradict the spec.
+
 ---
 
 # Failure Escalation Protocol
@@ -216,7 +232,10 @@ Phase numbers:
 - Phase 6: Implement
 - Phase 7: Review & Refine (if enabled)
 
-Use M = total phases that will execute in this run (skip Constitution if present; skip Review if `--review=off`).
+Use M = total phases that will execute in this run. Calculate M as follows:
+- Start with 7 (Specify, Clarify, Plan, Tasks, Spec Quality Gates, Implement, Validate).
+- Add 1 if Constitution phase runs (no existing constitution found).
+- Subtract 1 if `--review=off` (Phase 7 skipped).
 
 This indicator MUST appear before any other output for that phase. Keep it to exactly one line.
 
@@ -240,17 +259,9 @@ Ask once:
 
 **A constitution is needed before we begin.**
 
-The constitution tells SpecKit about your project — its tech stack, conventions, and preferences — so that every generated plan, task, and code change aligns with how your project actually works.
+It tells SpecKit about your project so every plan, task, and code change matches how your project works.
 
-Paste your constitution text below. Keep it short (bullets are fine). Finish in one message.
-
-What to include (pick what applies):
-- **Tech stack** — languages, frameworks, databases, infrastructure
-- **Code style** — naming conventions, file/folder structure, patterns (e.g., "use repository pattern", "prefer functional components")
-- **Testing** — framework, coverage expectations, test file conventions
-- **Build & tooling** — package manager, bundler, linter, CI requirements
-- **Constraints** — security policies, performance targets, accessibility, compliance
-- **Domain context** — brief description of what the project does
+Paste your constitution below (bullets are fine). Include what applies: tech stack, code style, testing, build tools, constraints, domain context.
 
 Example:
 ```
@@ -453,23 +464,26 @@ Tasks must be executed sequentially.
 
 # Phase 5 — Spec Quality Gates (Spec Artifacts Only)
 
-**Reminder: You are in the No User Interaction Zone. Do NOT ask the user anything. Auto-answer all questions from SpecKit commands.**
-
 Run `/speckit.checklist` if available.
-
-If `/speckit.checklist` asks questions or requests user input, auto-answer them immediately using context from the approved spec, clarification answers, constitution, and `agents.md`. Do NOT pause or wait for user input.
 
 Then you MUST run `/speckit.analyze` before any implementation.
 
-If `/speckit.analyze` asks questions or requests input, auto-answer them the same way. Do NOT pause.
+Each analyze iteration consists of two steps:
 
-If `/speckit.analyze` reports any issues (critical, high, medium, or low):
-- Fix ALL reported issues (including critical, high, medium, and low).
-- Fix SPEC ARTIFACTS ONLY (do NOT modify production/source code).
-- Re-run `/speckit.analyze`.
-- Repeat until `/speckit.analyze` reports clean / no issues.
+**Step A — `/speckit.analyze`:** Run the command and collect findings.
 
-You MUST NOT proceed to implementation until `/speckit.analyze` is clean.
+**Step B — Multi-Perspective Check:** Review the plan/tasks from four perspectives:
+
+1. **Architecture** — Does the structure align with the codebase? Are module boundaries sensible?
+2. **Security** — Are auth, input validation, and sensitive-data handling covered where the spec requires them?
+3. **Performance** — Are data access patterns efficient? Are caching/pagination tasks present where implied?
+4. **UX** (skip for backend-only / CLI-only specs) — Are error states, loading states, and edge cases covered?
+
+Combine all findings from Step A and Step B into a single fix pass. Fix SPEC ARTIFACTS ONLY (do NOT modify production/source code). Then start the next iteration.
+
+Repeat until `/speckit.analyze` is clean AND no multi-perspective issues remain.
+
+You MUST NOT proceed to implementation until both checks are clean.
 
 Stop only if:
 - 6 iterations reached, or
@@ -514,20 +528,13 @@ These files are now part of the repository governance and MUST be respected by t
 
 ---
 
-# Phase 6 — Implement (Fresh Session Sub-Agent)
-
-Start fresh-session sub-agent "Implementer".
+# Phase 6 — Implement
 
 Run:
 
 /speckit.implement
 
 Implement tasks strictly in order.
-
-If `/speckit.implement` asks questions, presents choices, or requests any form of user input:
-- Auto-answer immediately using the approved spec, clarification answers, constitution, and `agents.md`.
-- Do NOT pause, do NOT ask the user.
-- Continue implementation without interruption.
 
 Do NOT:
 - Add features beyond tasks.
@@ -610,38 +617,38 @@ perspective: <1-line perspective description>
 
 **Body:** Freeform Markdown with review instructions, rules, and focus areas. The body is injected as the reviewer's system prompt when it is spawned.
 
-### Example: Adding a Security Reviewer
+### Example: Adding a Custom Reviewer
 
-File: `.lazyspeckit/reviewers/security.md`
+File: `.lazyspeckit/reviewers/accessibility.md`
 
 ```markdown
 ---
-name: Security Reviewer
-perspective: Application security and vulnerability prevention
+name: Accessibility Reviewer
+perspective: WCAG compliance and inclusive UX
 ---
 
 Focus on:
-- Input validation and sanitization
-- Authentication and authorization boundaries
-- Secret handling (no hardcoded credentials, no leaked tokens)
-- SQL injection, XSS, CSRF, path traversal
-- Dependency vulnerabilities (known CVEs)
+- Semantic HTML and ARIA attributes
+- Keyboard navigation and focus management
+- Color contrast ratios (WCAG AA minimum)
+- Screen reader compatibility
+- Alt text for images and media
 
 Severity guide:
-- Critical: exploitable vulnerability, credential leak
-- High: missing auth check, unsanitized user input in sensitive path
-- Medium: missing rate limiting, overly permissive CORS
-- Low: informational security best practices
+- Critical: interactive element unreachable by keyboard
+- High: missing ARIA labels on form controls
+- Medium: insufficient color contrast
+- Low: missing skip-navigation link
 ```
 
 ## Review Setup
 
 1. Read all `.md` files from `.lazyspeckit/reviewers/`.
 2. Parse frontmatter (`name`, `perspective`) and body from each file.
-3. Spawn ALL reviewers in parallel as independent sub-agents with fresh context.
+3. Spawn ALL reviewers as independent agents with fresh context.
    - Reviewers are independent and have no dependencies on each other.
-   - Launch all of them simultaneously — do NOT run them sequentially.
-   - Collect all findings once every reviewer has completed.
+   - If the environment supports parallel sub-agents (e.g., Claude Code), launch all simultaneously and collect findings once all complete.
+   - If parallel sub-agents are not available (e.g., VS Code Copilot), run reviewers sequentially in any order and accumulate findings.
 
 Each reviewer MUST:
 - Read and obey applicable scoped `agents.md` files for the areas they evaluate.
@@ -731,25 +738,25 @@ Where `<timestamp>` is ISO 8601 format: `YYYY-MM-DDTHH-MM-SS` (use hyphens inste
 
 ```json
 {
-  "timestamp": "<ISO 8601 datetime>",
-  "spec_summary": "<one-line spec description>",
+  "timestamp": "2025-03-10T14:32:07Z",
+  "spec_summary": "Add user profile avatar upload with cropping",
   "options": {
     "review": true,
     "auto_clarify": false,
     "max_review_loops": 6
   },
   "phases": {
-    "constitution": { "status": "skipped | completed", "reason": "already exists | created" },
-    "specify": { "status": "completed | failed" },
-    "clarify": { "status": "completed", "questions_total": 5, "questions_auto_resolved": 3 },
-    "plan": { "status": "completed | failed" },
-    "tasks": { "status": "completed | failed", "task_count": 8 },
-    "analyze": { "status": "completed | failed", "iterations": 2, "issues_fixed": 4 },
-    "implement": { "status": "completed | failed" },
-    "validate": { "status": "completed | skipped | failed", "commands_run": ["npm run lint", "npm test"] },
-    "review": { "status": "completed | skipped | failed", "loops": 2, "findings_total": 12, "findings_fixed": 10, "findings_remaining": { "critical": 0, "high": 0, "medium": 2, "low": 3 } }
+    "constitution": { "status": "skipped", "reason": "already exists" },
+    "specify": { "status": "completed" },
+    "clarify": { "status": "completed", "questions_total": 5, "questions_auto_resolved": 0 },
+    "plan": { "status": "completed" },
+    "tasks": { "status": "completed", "task_count": 8 },
+    "analyze": { "status": "completed", "iterations": 2, "issues_fixed": 4 },
+    "implement": { "status": "completed" },
+    "validate": { "status": "completed", "commands_run": ["npm run lint", "npm test"] },
+    "review": { "status": "completed", "loops": 2, "reviewers": ["architecture", "code-quality", "security", "performance", "spec-compliance", "test"], "findings_total": 12, "findings_fixed": 10, "findings_remaining": { "critical": 0, "high": 0, "medium": 2, "low": 3 } }
   },
-  "outcome": "success | blocked",
+  "outcome": "success",
   "blocker": null,
   "files_changed": 15
 }
@@ -758,6 +765,7 @@ Where `<timestamp>` is ISO 8601 format: `YYYY-MM-DDTHH-MM-SS` (use hyphens inste
 Rules:
 - Populate each field based on actual execution data. Use `null` for fields that don't apply.
 - The `status` of each phase reflects what actually happened (not what was planned).
+- The `reviewers` array lists the base filename (without `.md`) of every reviewer that ran.
 - If the run ends with BLOCKED, set `outcome` to `"blocked"` and populate `blocker` with the blocker description.
 - Create the `.lazyspeckit/runs/` directory if it doesn't exist.
 - Do NOT log secrets, file contents, or user input — only metadata.
