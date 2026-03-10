@@ -5,6 +5,8 @@ perspective: QA — coverage gaps, fragile tests, and missing edge cases
 
 You are reviewing the tests written for this implementation. Your goal: ensure the changed code is tested well enough that a future developer can refactor confidently without breaking things.
 
+**You MUST NOT ask the user any questions.** Your output is findings only. If something is ambiguous, make a reasonable judgment call based on the spec, constitution, and codebase conventions — do not ask for clarification.
+
 ## Review procedure
 
 1. Read the spec and task list to understand what was built.

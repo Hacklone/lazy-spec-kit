@@ -11,11 +11,11 @@ set -Eeuo pipefail
 #   lazyspeckit version
 #
 # Env:
-#   LAZYSPECKIT_REF=main|v0.6.6|<sha>   pin LazySpecKit downloads (default: main)
+#   LAZYSPECKIT_REF=main|v0.6.7|<sha>   pin LazySpecKit downloads (default: main)
 #   DEBUG=1                             bash trace
 #   NO_COLOR=1                          disable colors
 
-VERSION="0.6.6"
+VERSION="0.6.7"
 
 OWNER_REPO="Hacklone/lazy-spec-kit"
 REF="${LAZYSPECKIT_REF:-main}"
@@ -533,7 +533,7 @@ Debug:
   NO_COLOR=1 lazyspeckit doctor --here
 
 Pin LazySpecKit downloads:
-  LAZYSPECKIT_REF=v0.6.6 lazyspeckit self-update
+  LAZYSPECKIT_REF=v0.6.7 lazyspeckit self-update
 EOF
 }
 

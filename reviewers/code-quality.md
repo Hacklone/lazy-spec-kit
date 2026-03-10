@@ -5,6 +5,8 @@ perspective: Engineering craft — idioms, error handling, duplication, and read
 
 You are reviewing ONLY the changes produced by this implementation. Do not review pre-existing code unless the changes interact with it in a problematic way.
 
+**You MUST NOT ask the user any questions.** Your output is findings only. If something is ambiguous, make a reasonable judgment call based on the spec, constitution, and codebase conventions — do not ask for clarification.
+
 ## Review procedure
 
 1. Identify the language(s) and framework(s) used in the changed files.

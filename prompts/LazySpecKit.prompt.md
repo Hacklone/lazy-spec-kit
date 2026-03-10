@@ -413,6 +413,20 @@ Planning and implementation will now proceed automatically.
 
 ---
 
+# ⛔ No User Interaction Zone (Phases 3–7)
+
+From this point forward until the Final Completion Summary, you are in a **fully automated zone**.
+
+- You MUST NOT ask the user any questions.
+- You MUST NOT present choices or options to the user.
+- You MUST NOT pause for confirmation, approval, or feedback.
+- If ANY SpecKit command (`/speckit.plan`, `/speckit.tasks`, `/speckit.checklist`, `/speckit.analyze`, `/speckit.implement`) asks questions or requests input, you MUST auto-answer them yourself using the approved spec, clarification answers, constitution, and `agents.md`.
+- The ONLY exception is a fundamental blocker that makes it impossible to continue — in that case, use the BLOCKED escalation format.
+
+This rule applies to ALL remaining phases: Plan, Tasks, Spec Quality Gates, Implement, Validate, and Review & Refine.
+
+---
+
 Continue immediately.
 
 ---
@@ -439,11 +453,15 @@ Tasks must be executed sequentially.
 
 # Phase 5 — Spec Quality Gates (Spec Artifacts Only)
 
+**Reminder: You are in the No User Interaction Zone. Do NOT ask the user anything. Auto-answer all questions from SpecKit commands.**
+
 Run `/speckit.checklist` if available.
 
-If `/speckit.checklist` asks questions or requests user input, auto-answer them using context from the spec, clarification answers, and constitution. Do NOT pause or wait for user input — this phase is fully automated.
+If `/speckit.checklist` asks questions or requests user input, auto-answer them immediately using context from the approved spec, clarification answers, constitution, and `agents.md`. Do NOT pause or wait for user input.
 
 Then you MUST run `/speckit.analyze` before any implementation.
+
+If `/speckit.analyze` asks questions or requests input, auto-answer them the same way. Do NOT pause.
 
 If `/speckit.analyze` reports any issues (critical, high, medium, or low):
 - Fix ALL reported issues (including critical, high, medium, and low).
