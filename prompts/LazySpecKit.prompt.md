@@ -37,6 +37,8 @@ You MUST pause ONLY for:
 
 After clarification answers are provided, you MUST NOT pause again until implementation is complete — unless fundamentally blocked.
 
+If ANY SpecKit command (including `/speckit.implement`, `/speckit.checklist`, `/speckit.analyze`) asks questions or requests user input after the clarification phase, you MUST auto-answer them using context from the approved spec, clarification answers, constitution, and `agents.md` governance files. NEVER ask the user. The only valid pause after clarification is a BLOCKED escalation.
+
 You MUST NOT:
 - Ask the user to read generated files.
 - Ask for confirmation between phases.
@@ -503,6 +505,11 @@ Run:
 /speckit.implement
 
 Implement tasks strictly in order.
+
+If `/speckit.implement` asks questions, presents choices, or requests any form of user input:
+- Auto-answer immediately using the approved spec, clarification answers, constitution, and `agents.md`.
+- Do NOT pause, do NOT ask the user.
+- Continue implementation without interruption.
 
 Do NOT:
 - Add features beyond tasks.
