@@ -11,11 +11,11 @@ set -Eeuo pipefail
 #   lazyspeckit version
 #
 # Env:
-#   LAZYSPECKIT_REF=main|v0.7.0|<sha>   pin LazySpecKit downloads (default: main)
+#   LAZYSPECKIT_REF=main|v0.7.1|<sha>   pin LazySpecKit downloads (default: main)
 #   DEBUG=1                             bash trace
 #   NO_COLOR=1                          disable colors
 
-VERSION="0.7.0"
+VERSION="0.7.1"
 
 OWNER_REPO="Hacklone/lazy-spec-kit"
 REF="${LAZYSPECKIT_REF:-main}"
@@ -734,6 +734,24 @@ cmd_init() {
     esac
   done
 
+  # If no --here and no path-like positional arg was given, inject --here
+  # so that `specify init` knows to use the current directory.
+  # Skip values that follow --ai (they're agent names, not paths).
+  local has_target="false"
+  local _skip_next="false"
+  for _a in "${filtered_args[@]+"${filtered_args[@]}"}"; do
+    if [[ "$_skip_next" == "true" ]]; then
+      _skip_next="false"
+      continue
+    fi
+    [[ "$_a" == "--ai" ]]   && { _skip_next="true"; continue; }
+    [[ "$_a" == "--here" ]] && { has_target="true"; break; }
+    [[ "$_a" != -* ]]       && { has_target="true"; break; }
+  done
+  if [[ "$has_target" == "false" ]]; then
+    filtered_args+=("--here")
+  fi
+
   local target
   target="$(infer_target_dir_from_init_args "${filtered_args[@]+"${filtered_args[@]}"}")"
 
@@ -1096,7 +1114,7 @@ Debug:
   NO_COLOR=1 lazyspeckit doctor --here
 
 Pin LazySpecKit downloads:
-  LAZYSPECKIT_REF=v0.7.0 lazyspeckit self-update
+  LAZYSPECKIT_REF=v0.7.1 lazyspeckit self-update
 EOF
 }
 

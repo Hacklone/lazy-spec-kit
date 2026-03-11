@@ -90,7 +90,7 @@ raw_url() {
 agency_raw_url() {
   local path="${1:-}"
   [[ -n "$path" ]] || die "agency_raw_url: missing path"
-  printf 'https://raw.githubusercontent.com/%s/%s/agents/%s' "$AGENCY_OWNER_REPO" "$AGENCY_REF" "$path"
+  printf 'https://raw.githubusercontent.com/%s/%s/%s' "$AGENCY_OWNER_REPO" "$AGENCY_REF" "$path"
 }
 
 inject_no_interaction_header() {
@@ -240,13 +240,15 @@ main() {
       if is_default_unmodified "$dst"; then
         reviewer_tmp="$(mktemp)"
         reviewer_url="$(cache_bust "$(agency_raw_url "$agent_path")")"
-        if fetch "$reviewer_url" "$reviewer_tmp" 2>/dev/null && [[ -s "$reviewer_tmp" ]]; then
+        local fetch_err
+        if fetch_err="$(fetch "$reviewer_url" "$reviewer_tmp" 2>&1)" && [[ -s "$reviewer_tmp" ]]; then
           install_file "$reviewer_tmp" "$dst" "0644"
           inject_no_interaction_header "$dst"
           stamp_file "$dst"
           reviewers_updated=$((reviewers_updated + 1))
         else
-          err "Failed to download Agency reviewer: $reviewer_name (skipping)"
+          err "Failed to download Agency reviewer: $reviewer_name from $reviewer_url"
+          [[ -n "$fetch_err" ]] && err "  $fetch_err"
         fi
         rm -f "$reviewer_tmp"
       else
@@ -258,13 +260,15 @@ main() {
     # Missing → download fresh from Agency
     reviewer_tmp="$(mktemp)"
     reviewer_url="$(cache_bust "$(agency_raw_url "$agent_path")")"
-    if fetch "$reviewer_url" "$reviewer_tmp" 2>/dev/null && [[ -s "$reviewer_tmp" ]]; then
+    local fetch_err
+    if fetch_err="$(fetch "$reviewer_url" "$reviewer_tmp" 2>&1)" && [[ -s "$reviewer_tmp" ]]; then
       install_file "$reviewer_tmp" "$dst" "0644"
       inject_no_interaction_header "$dst"
       stamp_file "$dst"
       reviewers_installed=$((reviewers_installed + 1))
     else
-      err "Failed to download Agency reviewer: $reviewer_name (skipping)"
+      err "Failed to download Agency reviewer: $reviewer_name from $reviewer_url"
+      [[ -n "$fetch_err" ]] && err "  $fetch_err"
     fi
     rm -f "$reviewer_tmp"
   done
@@ -279,12 +283,14 @@ main() {
         # Unmodified default → download new version and overwrite
         reviewer_tmp="$(mktemp)"
         reviewer_url="$(cache_bust "$(raw_url "$reviewer_path")")"
-        if fetch "$reviewer_url" "$reviewer_tmp" 2>/dev/null && [[ -s "$reviewer_tmp" ]]; then
+        local fetch_err
+        if fetch_err="$(fetch "$reviewer_url" "$reviewer_tmp" 2>&1)" && [[ -s "$reviewer_tmp" ]]; then
           install_file "$reviewer_tmp" "$dst" "0644"
           stamp_file "$dst"
           reviewers_updated=$((reviewers_updated + 1))
         else
-          err "Failed to download reviewer: $reviewer_name (skipping)"
+          err "Failed to download reviewer: $reviewer_name from $reviewer_url"
+          [[ -n "$fetch_err" ]] && err "  $fetch_err"
         fi
         rm -f "$reviewer_tmp"
       else
@@ -296,12 +302,14 @@ main() {
     # Missing → install fresh
     reviewer_tmp="$(mktemp)"
     reviewer_url="$(cache_bust "$(raw_url "$reviewer_path")")"
-    if fetch "$reviewer_url" "$reviewer_tmp" 2>/dev/null && [[ -s "$reviewer_tmp" ]]; then
+    local fetch_err
+    if fetch_err="$(fetch "$reviewer_url" "$reviewer_tmp" 2>&1)" && [[ -s "$reviewer_tmp" ]]; then
       install_file "$reviewer_tmp" "$dst" "0644"
       stamp_file "$dst"
       reviewers_installed=$((reviewers_installed + 1))
     else
-      err "Failed to download reviewer: $reviewer_name (skipping)"
+      err "Failed to download reviewer: $reviewer_name from $reviewer_url"
+      [[ -n "$fetch_err" ]] && err "  $fetch_err"
     fi
     rm -f "$reviewer_tmp"
   done

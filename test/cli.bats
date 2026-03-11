@@ -42,7 +42,7 @@ if [[ -n "$outfile" ]]; then
       'echo "Reviewer skill files installed"' > "$outfile"
   elif [[ "$url" == *msitarzewski/agency-agents* ]]; then
     local fname
-    fname="$(echo "$url" | sed 's/.*agents\///' | sed 's/?.*//')"
+    fname="$(echo "$url" | sed 's|.*/agency-agents/[^/]*/||' | sed 's/?.*//')"
     printf '%s\n' "---" "name: Agency $fname" "description: Agency agent" "---" "" "You are an Agency agent for $fname" > "$outfile"
   elif [[ "$url" == *reviewers/*.md* ]]; then
     local fname
@@ -51,7 +51,7 @@ if [[ -n "$outfile" ]]; then
   elif [[ "$url" == *lazyspeckit* ]]; then
     printf '%s\n' \
       '#!/usr/bin/env bash' \
-      'VERSION="0.7.0"' \
+      'VERSION="0.7.1"' \
       '# lazyspeckit marker' \
       'echo "lazyspeckit $VERSION"' > "$outfile"
   else
@@ -294,6 +294,16 @@ teardown() {
   cd "$repo"
 
   run run_cli init --here --ai copilot
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Done"* ]]
+}
+
+@test "cli: init without --here defaults to current directory" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+
+  run run_cli init --ai copilot
   [ "$status" -eq 0 ]
   [[ "$output" == *"Done"* ]]
 }
