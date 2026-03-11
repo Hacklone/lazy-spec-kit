@@ -558,10 +558,10 @@ Shows all commands and examples.
 
 ```bash
 # Install a specific version
-LAZYSPECKIT_REF=v0.6.9 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/v0.6.9/install.sh)"
+LAZYSPECKIT_REF=v0.7.0 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/v0.7.0/install.sh)"
 
 # Self-update to a specific version
-LAZYSPECKIT_REF=v0.6.9 lazyspeckit self-update
+LAZYSPECKIT_REF=v0.7.0 lazyspeckit self-update
 ```
 
 ---
