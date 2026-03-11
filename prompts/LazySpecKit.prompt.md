@@ -466,6 +466,12 @@ Tasks must be executed sequentially.
 
 Run `/speckit.checklist` if available.
 
+If `/speckit.checklist` asks ANY configuration or setup questions (e.g., quality dimensions, rigor level, audience, validation scope), you MUST auto-answer them immediately — do NOT present them to the user. Use these defaults:
+- **Quality dimensions / priorities:** ALL dimensions — completeness, correctness, consistency, testability, security, performance, edge cases, error handling, and UX (if applicable).
+- **Audience / rigor level:** Senior engineer, maximum rigor. Every item must be validated thoroughly.
+- **Validation scope:** Yes — validate requirements traceability, cross-reference against the approved spec and constitution, and verify coverage of all acceptance criteria.
+- For any other question: choose the option that maximizes thoroughness and coverage.
+
 Then you MUST run `/speckit.analyze` before any implementation.
 
 Each analyze iteration consists of two steps:
