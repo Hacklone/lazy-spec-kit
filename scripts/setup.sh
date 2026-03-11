@@ -15,13 +15,24 @@ OWNER_REPO="Hacklone/lazy-spec-kit"
 REF="${LAZYSPECKIT_REF:-main}"
 PROMPT_REPO_PATH="prompts/LazySpecKit.prompt.md"
 
-# Default reviewer skill files (repo paths → installed to .lazyspeckit/reviewers/)
+# Agency repo — source for default mapped reviewers
+AGENCY_OWNER_REPO="msitarzewski/agency-agents"
+AGENCY_REF="${AGENCY_REF:-main}"
+
+# Mapping: "agency-repo-path:installed-reviewer-name"
+AGENCY_REVIEWER_MAP=(
+  "testing/testing-reality-checker.md:spec-compliance.md"
+  "engineering/engineering-security-engineer.md:security.md"
+  "testing/testing-performance-benchmarker.md:performance.md"
+  "testing/testing-accessibility-auditor.md:accessibility.md"
+  "engineering/engineering-backend-architect.md:architecture.md"
+)
+
+NO_INTERACTION_HEADER='**You MUST NOT ask the user any questions.** Your output is findings only. If something is ambiguous, make a reasonable judgment call based on the spec, constitution, and codebase conventions — do not ask for clarification.'
+
+# Unmapped reviewer skill files (repo paths → installed to .lazyspeckit/reviewers/)
 REVIEWER_FILES=(
-  "reviewers/architecture.md"
   "reviewers/code-quality.md"
-  "reviewers/security.md"
-  "reviewers/performance.md"
-  "reviewers/spec-compliance.md"
   "reviewers/test.md"
 )
 
@@ -74,6 +85,34 @@ fetch() {
 raw_url() {
   local path="${1:-$PROMPT_REPO_PATH}"
   printf 'https://raw.githubusercontent.com/%s/%s/%s' "$OWNER_REPO" "$REF" "$path"
+}
+
+agency_raw_url() {
+  local path="${1:-}"
+  [[ -n "$path" ]] || die "agency_raw_url: missing path"
+  printf 'https://raw.githubusercontent.com/%s/%s/agents/%s' "$AGENCY_OWNER_REPO" "$AGENCY_REF" "$path"
+}
+
+inject_no_interaction_header() {
+  # Inject the no-interaction header after YAML frontmatter (if present).
+  local file="${1:-}"
+  [[ -n "$file" && -f "$file" ]] || return 1
+  local content
+  content="$(cat "$file")"
+  if [[ "$content" == ---* ]]; then
+    local tmp_inject
+    tmp_inject="$(mktemp)"
+    awk -v header="$NO_INTERACTION_HEADER" '
+      BEGIN { in_fm=0; fm_done=0 }
+      NR==1 && /^---/ { in_fm=1; print; next }
+      in_fm && /^---/ { print; print ""; print header; fm_done=1; in_fm=0; next }
+      { print }
+    ' "$file" > "$tmp_inject"
+    mv -f "$tmp_inject" "$file"
+  else
+    # No frontmatter — prepend header
+    printf '%s\n\n%s\n' "$NO_INTERACTION_HEADER" "$content" > "$file"
+  fi
 }
 
 cache_bust() {
@@ -176,13 +215,62 @@ main() {
   echo "  - $target/.github/prompts/LazySpecKit.prompt.md"
   echo "  - $target/.claude/commands/LazySpecKit.md"
 
-  # Install default reviewer skill files
-  # - Missing       → install + stamp
-  # - Unmodified    → update  + stamp  (hash matches → safe to overwrite)
-  # - User-modified → skip             (hash mismatch or no stamp → preserve)
+  # Install Agency-sourced reviewer skill files (downloaded from Agency repo)
+  # - Symlink     → skip (local Agency install takes precedence)
+  # - Missing     → download + inject header + stamp
+  # - Unmodified  → update + inject header + stamp  (hash matches → safe to overwrite)
+  # - User-modified → skip (hash mismatch or no stamp → preserve)
   info "Installing default reviewer skill files..."
-  local reviewer_path reviewer_tmp reviewer_url reviewer_name
+  local reviewer_tmp reviewer_url reviewer_name
   local reviewers_installed=0 reviewers_updated=0 reviewers_skipped=0
+
+  local entry agent_path
+  for entry in "${AGENCY_REVIEWER_MAP[@]}"; do
+    agent_path="${entry%%:*}"
+    reviewer_name="${entry##*:}"
+    local dst="$target/.lazyspeckit/reviewers/$reviewer_name"
+
+    # Skip symlinks — local Agency install takes precedence
+    if [[ -L "$dst" ]]; then
+      reviewers_skipped=$((reviewers_skipped + 1))
+      continue
+    fi
+
+    if [[ -f "$dst" ]]; then
+      if is_default_unmodified "$dst"; then
+        reviewer_tmp="$(mktemp)"
+        reviewer_url="$(cache_bust "$(agency_raw_url "$agent_path")")"
+        if fetch "$reviewer_url" "$reviewer_tmp" 2>/dev/null && [[ -s "$reviewer_tmp" ]]; then
+          install_file "$reviewer_tmp" "$dst" "0644"
+          inject_no_interaction_header "$dst"
+          stamp_file "$dst"
+          reviewers_updated=$((reviewers_updated + 1))
+        else
+          err "Failed to download Agency reviewer: $reviewer_name (skipping)"
+        fi
+        rm -f "$reviewer_tmp"
+      else
+        reviewers_skipped=$((reviewers_skipped + 1))
+      fi
+      continue
+    fi
+
+    # Missing → download fresh from Agency
+    reviewer_tmp="$(mktemp)"
+    reviewer_url="$(cache_bust "$(agency_raw_url "$agent_path")")"
+    if fetch "$reviewer_url" "$reviewer_tmp" 2>/dev/null && [[ -s "$reviewer_tmp" ]]; then
+      install_file "$reviewer_tmp" "$dst" "0644"
+      inject_no_interaction_header "$dst"
+      stamp_file "$dst"
+      reviewers_installed=$((reviewers_installed + 1))
+    else
+      err "Failed to download Agency reviewer: $reviewer_name (skipping)"
+    fi
+    rm -f "$reviewer_tmp"
+  done
+
+  # Install unmapped reviewer skill files (from LazySpecKit repo)
+  local reviewer_path
   for reviewer_path in "${REVIEWER_FILES[@]}"; do
     reviewer_name="$(basename "$reviewer_path")"
     local dst="$target/.lazyspeckit/reviewers/$reviewer_name"

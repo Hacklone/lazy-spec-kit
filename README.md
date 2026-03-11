@@ -19,7 +19,7 @@
 
 ---
 
-LazySpecKit goes beyond wrapping [GitHub SpecKit](https://github.com/github/spec-kit). It orchestrates the entire workflow — from constitution setup through implementation and validation — and then launches its own **Review & Refine** phase: six specialized AI agents, each approaching the code from a different perspective (architecture, code quality, security, performance, spec compliance, tests), that don't just *review* but **automatically fix** the issues they find. Add `--auto-clarify` and the agent even answers its own clarification questions when it's confident — making this the ultimate hands-off, spec-driven development workflow.
+LazySpecKit goes beyond wrapping [GitHub SpecKit](https://github.com/github/spec-kit). It orchestrates the entire workflow — from constitution setup through implementation and validation — and then launches its own **Review & Refine** phase: seven specialized AI agents, each approaching the code from a different perspective (architecture, code quality, security, performance, spec compliance, accessibility, tests), that don't just *review* but **automatically fix** the issues they find. Five of these reviewers are sourced from [Agency](https://github.com/msitarzewski/agency-agents) — a curated collection of specialized AI agent definitions — and downloaded automatically during setup. Add `--auto-clarify` and the agent even answers its own clarification questions when it's confident — making this the ultimate hands-off, spec-driven development workflow.
 
 ```
 /LazySpecKit Add OAuth login with GitHub and Google. Store users in Postgres. Add tests.
@@ -166,7 +166,7 @@ When you run `/LazySpecKit <spec>`, it orchestrates the full SpecKit lifecycle a
 | **Governance** | Creates scoped `agents.md` governance files if missing (root + immediate subdirectories) | No |
 | **Implement** | Executes tasks in order, following `agents.md` rules | No |
 | **Validate** | Runs detected lint / typecheck / tests / build | No |
-| **Review & Refine** | Six AI agents review from different perspectives — architecture, quality, security, performance, spec compliance, tests — and **auto-fix** findings (up to 6 loops, configurable via `--max-review-loops`) | No |
+| **Review & Refine** | Seven AI agents review from different perspectives — architecture, quality, security, performance, spec compliance, accessibility, tests — and **auto-fix** findings (up to 6 loops, configurable via `--max-review-loops`) | No |
 | **Final Validation** | Full validation suite re-run to guarantee green before completion | No |
 
 **You only interact during Constitution (if missing) and Clarify.** With `--auto-clarify`, even Clarify becomes automatic for high/medium-confidence questions — you're only asked about genuinely ambiguous items. Everything else — including multi-agent review and automatic code refinement — is fully automated.
@@ -225,7 +225,7 @@ You can always answer manually in one message: `1: A  2: B  3: Other: <text>`
 
 SpecKit stops after implementation and validation. **LazySpecKit keeps going.**
 
-This isn't a single-pass code review. After SpecKit's work is done, LazySpecKit spawns **six independent AI agents** — each with fresh context and a distinct perspective — that **review the code AND fix what they find**:
+This isn't a single-pass code review. After SpecKit's work is done, LazySpecKit spawns **seven independent AI agents** — each with fresh context and a distinct perspective — that **review the code AND fix what they find**:
 
 | Agent | Perspective | What it catches & fixes |
 |-------|-------------|------------------------|
@@ -234,11 +234,12 @@ This isn't a single-pass code review. After SpecKit's work is done, LazySpecKit 
 | **Security Reviewer** | Application security | Injection vulnerabilities, missing auth checks, credential leaks, input validation gaps |
 | **Performance Reviewer** | Runtime efficiency | N+1 queries, missing indexes, redundant computation, memory leaks |
 | **Spec Compliance Reviewer** | Requirements | Missing or incorrectly implemented spec requirements |
+| **Accessibility Reviewer** | Accessibility & inclusion | Missing ARIA attributes, color contrast, keyboard navigation, screen reader support |
 | **Test Reviewer** | QA | Gaps in coverage, fragile tests, missing edge cases |
 
 ### Review, fix, verify — automatically
 
-1. All six agents analyze the changes — in parallel — from their perspective and produce findings (Critical / High / Medium / Low).
+1. All seven agents analyze the changes — in parallel — from their perspective and produce findings (Critical / High / Medium / Low).
 2. LazySpecKit **automatically fixes** all Critical and High issues, plus low-effort Medium ones — this is refinement, not just reporting.
 3. Validation (lint / typecheck / tests / build) re-runs to confirm the fixes didn't break anything.
 4. The agents review again — up to **6 loops** by default (configurable with `--max-review-loops=N`) — until no Critical or High findings remain.
@@ -248,7 +249,7 @@ If a finding can't be resolved safely, LazySpecKit stops and tells you exactly w
 
 ### Why this matters
 
-- **Multiple perspectives** — Six agents catch different classes of problems that a single reviewer would miss.
+- **Multiple perspectives** — Seven agents catch different classes of problems that a single reviewer would miss.
 - **Parallel execution** — All reviewers run simultaneously when the environment supports it (e.g., Claude Code), or sequentially otherwise (e.g., VS Code Copilot).
 - **Not just review, but refinement** — Issues are fixed in place, not dumped on you as a TODO list.
 - **Iterative convergence** — Fix loops continue until the agents agree the code is clean.
@@ -274,23 +275,26 @@ To limit review iterations:
 /LazySpecKit --max-review-loops=3 <your spec>
 ```
 
-> **Bottom line:** With plain SpecKit, you implement and hope for the best. With LazySpecKit, six agents — each with a different perspective — review your code in parallel, fix what's wrong, and verify the result. You get reviewed, refined, validated code without lifting a finger.
+> **Bottom line:** With plain SpecKit, you implement and hope for the best. With LazySpecKit, seven agents — each with a different perspective — review your code in parallel, fix what's wrong, and verify the result. You get reviewed, refined, validated code without lifting a finger.
 
 ---
 
 ## Custom Reviewers
 
-When you run `lazyspeckit init` or `lazyspeckit upgrade`, six default reviewer skill files are installed into your project:
+When you run `lazyspeckit init` or `lazyspeckit upgrade`, seven default reviewer skill files are installed into your project:
 
 ```
 .lazyspeckit/reviewers/
-├── architecture.md        # System design
+├── accessibility.md       # Accessibility & inclusion (from Agency)
+├── architecture.md        # System design (from Agency)
 ├── code-quality.md        # Engineering craft
-├── security.md            # Application security
-├── performance.md         # Runtime efficiency
-├── spec-compliance.md     # Requirements coverage
+├── performance.md         # Runtime efficiency (from Agency)
+├── security.md            # Application security (from Agency)
+├── spec-compliance.md     # Requirements coverage (from Agency)
 └── test.md                # QA & test quality
 ```
+
+Five of these reviewers are downloaded from the [Agency](https://github.com/msitarzewski/agency-agents) repository — a curated collection of specialized AI agent definitions. The remaining two (`code-quality.md`, `test.md`) are LazySpecKit originals.
 
 Each file defines one reviewer agent that participates in the Review & Refine phase. You can **edit any default** to tune its behavior, or **add new `.md` files** to create additional reviewers.
 
@@ -330,7 +334,9 @@ Drop a new `.md` file into `.lazyspeckit/reviewers/` with a unique `name`. It ru
 
 ## Agency Integration
 
-LazySpecKit integrates with [Agency](https://github.com/msitarzewski/agency-agents) — a collection of specialized AI agent definitions. Agency agents map naturally to LazySpecKit's reviewer roles and are often richer than the bundled defaults.
+LazySpecKit uses [Agency](https://github.com/msitarzewski/agency-agents) — a curated collection of specialized AI agent definitions — as the **default source** for five of its seven reviewers. During `init` and `upgrade`, these reviewer files are downloaded directly from the Agency GitHub repository. No local Agency installation is required.
+
+If you *do* have Agency installed locally (`~/.claude/agents/` or `~/.github/agents/`), LazySpecKit auto-detects it during `init` and **symlinks** the matching agents instead — so updates to your local Agency installation flow into LazySpecKit automatically.
 
 ### Agent-to-reviewer mapping
 
@@ -342,21 +348,33 @@ LazySpecKit integrates with [Agency](https://github.com/msitarzewski/agency-agen
 | `testing/testing-accessibility-auditor.md` | `accessibility.md` |
 | `engineering/engineering-backend-architect.md` | `architecture.md` |
 
-### Initialize with Agency reviewers
+The remaining two reviewers (`code-quality.md`, `test.md`) are LazySpecKit originals with no Agency equivalent.
 
-Use `--agency` during init to symlink Agency agents as reviewers instead of copying the bundled defaults. Updates to your Agency installation flow into LazySpecKit automatically.
+### Default behavior — download from Agency repo
 
-```bash
-lazyspeckit init --here --ai copilot --agency
-```
-
-By default, Agency agents are detected in `~/.claude/agents/` or `~/.github/agents/`. Override with `--agency-path`:
+Running `init` or `upgrade` downloads the five mapped reviewers from the Agency GitHub repository and injects a no-interaction header so they work as review-only agents:
 
 ```bash
-lazyspeckit init --here --ai copilot --agency --agency-path ~/my-agents
+lazyspeckit init --here --ai copilot
 ```
 
-Unmapped reviewers (`code-quality.md`, `test.md`) are still installed from the bundled defaults. User-customized reviewers are never overwritten.
+This requires no local Agency installation — reviewer content is fetched from `https://github.com/msitarzewski/agency-agents`.
+
+### Local Agency override
+
+If Agency is installed locally, LazySpecKit auto-detects it and symlinks the matching agents as reviewers instead of downloading them. Updates to your local Agency installation are reflected automatically.
+
+Override the detection path with `--agency-path`:
+
+```bash
+lazyspeckit init --here --ai copilot --agency-path ~/my-agents
+```
+
+To skip local Agency auto-detection (downloaded defaults are still used):
+
+```bash
+lazyspeckit init --here --ai copilot --no-agency
+```
 
 ### Add individual Agency agents
 
@@ -374,10 +392,12 @@ The agent file is **copied** (not symlinked) with the no-interaction enforcement
 
 ### How it works
 
-- **`init --agency`** creates **symlinks** — the Agency agent files are the single source of truth. Any updates to your Agency installation are reflected automatically.
+- **`init` / `upgrade`** download Agency reviewers from the GitHub repo by default. A no-interaction header is injected after the YAML frontmatter so the agents produce findings only.
+- If a **local Agency installation** is detected, `init` creates **symlinks** instead — the local agent files become the single source of truth.
 - **`add-reviewer --from-agency`** creates a **copy** with the no-interaction header injected — safe to edit independently.
 - Both approaches work on macOS, Linux, and Windows. On platforms where symlinks aren't supported, LazySpecKit falls back to copying with a warning.
 - Existing user-customized reviewers (files you've edited manually) are never overwritten.
+- Use `--no-agency` during `init` to skip local Agency symlink overlay (downloaded defaults are still installed).
 
 ---
 
@@ -409,11 +429,16 @@ lazyspeckit init --here --ai copilot
 lazyspeckit init ./my-repo --ai claude
 ```
 
-With `--agency`, reviewers are symlinked from your [Agency](https://github.com/msitarzewski/agency-agents) installation instead of using the bundled defaults (see [Agency Integration](#agency-integration)):
+With [Agency](https://github.com/msitarzewski/agency-agents) installed locally, reviewers are automatically symlinked from your Agency installation instead of using the downloaded defaults (see [Agency Integration](#agency-integration)):
 
 ```bash
-lazyspeckit init --here --ai copilot --agency
-lazyspeckit init --here --ai claude --agency --agency-path ~/my-agents
+lazyspeckit init --here --ai copilot --agency-path ~/my-agents
+```
+
+To skip local Agency auto-detection (downloaded defaults are still used):
+
+```bash
+lazyspeckit init --here --ai copilot --no-agency
 ```
 
 Additional agents (Cursor, OpenCode) can be added with repeatable `--ai` flags:
@@ -438,10 +463,13 @@ Upgrades everything in a repository:
 - SpecKit CLI (`specify-cli`)
 - SpecKit project files (slash commands / templates)
 - LazySpecKit prompts
+- Reviewer skill files (Agency-sourced and LazySpecKit originals)
 
 Auto-detects which AI agents are configured. If both VS Code and Claude are present, it upgrades both. You can also target one explicitly with `--ai`.
 
-SpecKit upgrade failures are non-fatal — LazySpecKit prompts are always updated even if SpecKit has issues.
+If a local Agency installation is detected, matching reviewers are symlinked. Otherwise, the latest Agency reviewer files are downloaded from the Agency repository.
+
+SpecKit upgrade failures are non-fatal — LazySpecKit prompts and reviewers are always updated even if SpecKit has issues.
 
 ```bash
 # Auto-detect (upgrades all detected agents)
@@ -637,7 +665,7 @@ LazySpecKit respects `agents.md` governance files. A root-level `agents.md` appl
 
 ### What is Agency and how does it integrate with LazySpecKit?
 
-[Agency](https://github.com/msitarzewski/agency-agents) is a curated collection of specialized AI agent definitions. LazySpecKit can use Agency agents as reviewers — they map directly to LazySpecKit's reviewer roles (security, architecture, performance, etc.) and are often more detailed than the bundled defaults. Use `lazyspeckit init --agency` to symlink them, or `lazyspeckit add-reviewer --from-agency` to import individual agents. See [Agency Integration](#agency-integration) for details.
+[Agency](https://github.com/msitarzewski/agency-agents) is a curated collection of specialized AI agent definitions. LazySpecKit uses Agency as the **default source** for five of its seven reviewers — they are downloaded from the Agency GitHub repository during `init` and `upgrade`. No local Agency installation is required. If you *do* have Agency installed locally, `init` auto-detects it and symlinks the matching agents instead, so local updates flow in automatically. Use `lazyspeckit add-reviewer --from-agency` to import additional agents. See [Agency Integration](#agency-integration) for details.
 
 ### How is LazySpecKit different from OpenSpec?
 
@@ -657,7 +685,7 @@ Here is the practical difference:
 | Deterministic phase gates (must pass before next phase) | ❌ | ✔️ |
 | Auto-clarify with recommendation + confidence | ❌ | ✔️ |
 | Hands-off mode (`--auto-clarify`) | ❌ | ✔️ |
-| Multi-agent autonomous review loop | ❌ | ✔️ (6 agents, parallel) |
+| Multi-agent autonomous review loop | ❌ | ✔️ (7 agents, parallel) |
 | Auto-fix review findings | ❌ | ✔️ |
 | Security & performance review | ❌ | ✔️ (dedicated agents) |
 | Configurable review iterations (`--max-review-loops`) | ❌ | ✔️ |

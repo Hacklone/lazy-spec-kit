@@ -672,8 +672,8 @@ Tip: Use --here or pass a path-like target (./repo) so the target can be inferre
 }
 
 cmd_init() {
-  # Parse --agency, --agency-path flags; classify --ai into primary vs extra
-  local use_agency="false"
+  # Parse --no-agency, --agency-path flags; classify --ai into primary vs extra
+  local skip_agency="false"
   local agency_path_override=""
   local -a extra_agents=()
   local -a filtered_args=()
@@ -681,7 +681,11 @@ cmd_init() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --agency)
-        use_agency="true"
+        # Accepted for backward compatibility (Agency is now the default)
+        shift
+        ;;
+      --no-agency)
+        skip_agency="true"
         shift
         ;;
       --agency-path)
@@ -742,11 +746,13 @@ cmd_init() {
     install_extra_tool_prompts "$target" "${extra_agents[@]}"
   fi
 
-  if [[ "$use_agency" == "true" ]]; then
+  if [[ "$skip_agency" != "true" ]]; then
     local agency_dir
-    agency_dir="$(detect_agency_dir "$agency_path_override")" \
-      || die "Agency installation not found. Install Agency agents or use --agency-path <dir>."
-    install_agency_reviewers "$target" "$agency_dir" true
+    if agency_dir="$(detect_agency_dir "$agency_path_override")"; then
+      install_agency_reviewers "$target" "$agency_dir" true
+    elif [[ -n "$agency_path_override" ]]; then
+      die "Agency installation not found at: $agency_path_override"
+    fi
   fi
 
   echo
@@ -821,6 +827,12 @@ cmd_upgrade() {
   # Re-install extra agent prompts if applicable.
   if [[ ${#extra_tools[@]} -gt 0 ]]; then
     install_extra_tool_prompts "$target" "${extra_tools[@]}"
+  fi
+
+  # Auto-detect local Agency and symlink reviewers (overrides downloaded defaults).
+  local agency_dir
+  if agency_dir="$(detect_agency_dir "")"; then
+    install_agency_reviewers "$target" "$agency_dir" false
   fi
 
   echo
@@ -1031,8 +1043,7 @@ usage() {
 lazyspeckit
 
 Commands:
-  lazyspeckit init        [--ai <agent>...] [specify init args...]
-  lazyspeckit init        --agency [--agency-path <dir>] [specify init args...]
+  lazyspeckit init        [--ai <agent>...] [--no-agency] [--agency-path <dir>] [specify init args...]
   lazyspeckit add-reviewer --from-agency <agent> [--as <name>] [--agency-path <dir>] [--force]
   lazyspeckit upgrade     [--here | <path>] [--ai <agent>...] [extra specify init args...]
   lazyspeckit doctor      [--here | <path>]
@@ -1054,8 +1065,8 @@ Examples:
   lazyspeckit init --here --ai copilot --ai cursor
   lazyspeckit init --here --ai copilot --ai opencode
   lazyspeckit init --here --ai all
-  lazyspeckit init --here --ai copilot --agency
-  lazyspeckit init --here --agency --agency-path ~/my-agents
+  lazyspeckit init --here --agency-path ~/my-agents
+  lazyspeckit init --here --ai copilot --no-agency
 
   lazyspeckit add-reviewer --from-agency testing/testing-reality-checker.md
   lazyspeckit add-reviewer --from-agency testing-performance-benchmarker --as perf.md
@@ -1069,10 +1080,13 @@ Examples:
   lazyspeckit version
   lazyspeckit self-update
 
-Agency integration:
-  --agency            Use Agency agents as reviewers (symlinked for auto-updates)
+Agency integration (auto-detected by default):
+  Agency agents are automatically detected and symlinked as reviewers when
+  found in ~/.claude/agents/ or ~/.github/agents/. If Agency is not installed,
+  bundled reviewers are used instead. No flag needed.
+
+  --no-agency         Skip Agency auto-detection (use bundled reviewers only)
   --agency-path <dir> Override Agency install location
-                      (default: ~/.claude/agents/ or ~/.github/agents/)
   --from-agency <a>   Agency agent name or path (e.g. testing/testing-reality-checker.md)
   --as <name>         Override the installed reviewer filename
   --force             Overwrite an existing reviewer

@@ -462,9 +462,14 @@ SCRIPT
 
   run run_setup "$repo"
   [ "$status" -eq 0 ]
+  # Agency-sourced reviewers
   [ -f "$repo/.lazyspeckit/reviewers/architecture.md" ]
-  [ -f "$repo/.lazyspeckit/reviewers/code-quality.md" ]
+  [ -f "$repo/.lazyspeckit/reviewers/security.md" ]
+  [ -f "$repo/.lazyspeckit/reviewers/performance.md" ]
   [ -f "$repo/.lazyspeckit/reviewers/spec-compliance.md" ]
+  [ -f "$repo/.lazyspeckit/reviewers/accessibility.md" ]
+  # Bundled reviewers
+  [ -f "$repo/.lazyspeckit/reviewers/code-quality.md" ]
   [ -f "$repo/.lazyspeckit/reviewers/test.md" ]
 }
 
@@ -475,6 +480,7 @@ SCRIPT
   run run_setup "$repo"
   [ "$status" -eq 0 ]
   grep -q "^<!-- lazyspeckit-hash:" "$repo/.lazyspeckit/reviewers/architecture.md"
+  grep -q "^<!-- lazyspeckit-hash:" "$repo/.lazyspeckit/reviewers/security.md"
   grep -q "^<!-- lazyspeckit-hash:" "$repo/.lazyspeckit/reviewers/code-quality.md"
   grep -q "^<!-- lazyspeckit-hash:" "$repo/.lazyspeckit/reviewers/spec-compliance.md"
   grep -q "^<!-- lazyspeckit-hash:" "$repo/.lazyspeckit/reviewers/test.md"
@@ -486,7 +492,7 @@ SCRIPT
 
   run run_setup "$repo"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"6 installed"* ]]
+  [[ "$output" == *"7 installed"* ]]
 }
 
 @test "setup.sh: prints reviewer directory path in output" {
@@ -514,6 +520,7 @@ SCRIPT
   run run_setup "$repo"
   [ "$status" -eq 0 ]
   [ -s "$repo/.lazyspeckit/reviewers/architecture.md" ]
+  [ -s "$repo/.lazyspeckit/reviewers/security.md" ]
   [ -s "$repo/.lazyspeckit/reviewers/code-quality.md" ]
   [ -s "$repo/.lazyspeckit/reviewers/spec-compliance.md" ]
   [ -s "$repo/.lazyspeckit/reviewers/test.md" ]
@@ -627,25 +634,25 @@ SCRIPT
   local repo
   repo="$(create_bare_repo)"
 
-  # First install all 6
+  # First install all 7
   run run_setup "$repo"
   [ "$status" -eq 0 ]
 
-  # Modify 1, delete 1, leave 4 unmodified
+  # Modify 1, delete 1, leave 5 unmodified
   sed -i.bak '1s/^/# edited\n/' "$repo/.lazyspeckit/reviewers/architecture.md"
   rm -f "$repo/.lazyspeckit/reviewers/architecture.md.bak"
   rm -f "$repo/.lazyspeckit/reviewers/test.md"
 
   run run_setup "$repo"
   [ "$status" -eq 0 ]
-  # 1 installed (test.md), 4 updated (code-quality, security, performance, spec-compliance), 1 customized (architecture)
+  # 1 installed (test.md), 5 updated (security, performance, accessibility, spec-compliance, code-quality), 1 customized (architecture)
   [[ "$output" == *"1 installed"* ]]
-  [[ "$output" == *"4 updated"* ]]
+  [[ "$output" == *"5 updated"* ]]
   [[ "$output" == *"1 customized (kept)"* ]]
 }
 
 @test "setup.sh: continues if a reviewer download fails" {
-  # Create a curl that fails only for reviewer URLs
+  # Create a curl that fails for both reviewer and Agency URLs
   cat > "$FAKE_BIN/curl" <<'SCRIPT'
 #!/usr/bin/env bash
 outfile=""
@@ -659,7 +666,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 if [[ -n "$outfile" ]]; then
-  if [[ "$url" == *reviewers/*.md* ]]; then
+  if [[ "$url" == *reviewers/*.md* || "$url" == *agency-agents* ]]; then
     exit 1
   else
     echo "lazyspeckit speckit LazySpecKit" > "$outfile"
@@ -675,7 +682,7 @@ SCRIPT
   run run_setup "$repo"
   # Should still succeed — reviewer download failures are non-fatal
   [ "$status" -eq 0 ]
-  [[ "$output" == *"Failed to download reviewer"* ]]
+  [[ "$output" == *"Failed to download"* ]]
 }
 
 @test "setup.sh: raw_url accepts custom path argument" {

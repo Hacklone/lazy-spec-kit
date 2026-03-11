@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LazySpecKit — SpecKit without babysitting + multi-agent review</title>
-  <meta name="description" content="Write your spec. Answer questions. LazySpecKit orchestrates GitHub SpecKit end-to-end, then six AI agents review and auto-fix your code from different perspectives.">
+  <meta name="description" content="Write your spec. Answer questions. LazySpecKit orchestrates GitHub SpecKit end-to-end, then seven AI agents review and auto-fix your code from different perspectives.">
   <meta name="theme-color" content="#0ff0fc">
   <meta property="og:title" content="LazySpecKit ⚡">
-  <meta property="og:description" content="SpecKit without babysitting. One command to spec, plan, implement, validate — then six AI agents review and refine the result.">
+  <meta property="og:description" content="SpecKit without babysitting. One command to spec, plan, implement, validate — then seven AI agents review and refine the result.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://hacklone.github.io/lazy-spec-kit/">
   <meta property="og:image" content="https://hacklone.github.io/lazy-spec-kit/og-image.png">
@@ -819,7 +819,7 @@
       <div class="card">
         <div class="card-icon">⚡</div>
         <h3>LazySpecKit Adds</h3>
-        <p>Full automation plus a <strong>multi-agent review & refine</strong> phase. Six AI agents audit your code from different perspectives and auto-fix issues.</p>
+        <p>Full automation plus a <strong>multi-agent review & refine</strong> phase. Seven AI agents audit your code from different perspectives and auto-fix issues.</p>
       </div>
     </div>
   </div>
@@ -1011,7 +1011,7 @@
       <div class="timeline-step">
         <div class="step-label">Phase 8</div>
         <h3>Review & Refine <span class="badge-auto">automatic</span></h3>
-        <p>Six AI agents — architecture, code quality, security, performance, spec compliance, tests — review the code from different perspectives and <strong>auto-fix</strong> Critical/High findings. Up to 6 loops until clean.</p>
+        <p>Seven AI agents — architecture, code quality, security, performance, spec compliance, accessibility, tests — review the code from different perspectives and <strong>auto-fix</strong> Critical/High findings. Up to 6 loops until clean.</p>
       </div>
       <div class="timeline-step">
         <div class="step-label">Phase 9</div>
@@ -1115,7 +1115,7 @@
   <div class="container">
     <p class="section-label">Beyond SpecKit</p>
     <h2 class="section-title">Multi-Agent Review & Refine</h2>
-    <p class="section-desc">SpecKit stops after implementation and validation. <strong style="color:var(--text)">LazySpecKit keeps going.</strong> Six independent AI agents — each with a different perspective — review your code <em>and fix what they find</em>.</p>
+    <p class="section-desc">SpecKit stops after implementation and validation. <strong style="color:var(--text)">LazySpecKit keeps going.</strong> Seven independent AI agents — each with a different perspective — review your code <em>and fix what they find</em>. Five are sourced from <a href="https://github.com/msitarzewski/agency-agents">Agency</a> and downloaded automatically.</p>
 
     <div class="cards">
       <div class="card">
@@ -1144,6 +1144,11 @@
         <p>Verifies every requirement from the approved spec is implemented correctly and completely.</p>
       </div>
       <div class="card">
+        <div class="card-icon">♿</div>
+        <h3>Accessibility Reviewer</h3>
+        <p>Checks ARIA attributes, keyboard navigation, color contrast, screen reader support, and WCAG compliance.</p>
+      </div>
+      <div class="card">
         <div class="card-icon">🧪</div>
         <h3>Test Reviewer</h3>
         <p>Audits test coverage, edge cases, test quality, reliability, and identifies missing scenarios.</p>
@@ -1156,7 +1161,7 @@
         <div class="timeline-step">
           <div class="step-label">Step 1</div>
           <h3>Analyze</h3>
-          <p>All six agents review the implemented changes from their perspective. Findings are categorized: Critical / High / Medium / Low.</p>
+          <p>All seven agents review the implemented changes from their perspective. Findings are categorized: Critical / High / Medium / Low.</p>
         </div>
         <div class="timeline-step">
           <div class="step-label">Step 2</div>
@@ -1193,7 +1198,7 @@
           <li>Everything SpecKit does, fully automated</li>
           <li>One command — answer questions once (or use auto-clarify), done</li>
           <li>Auto-clarify: agent answers its own questions when confident</li>
-          <li>Six AI agents review from different perspectives</li>
+          <li>Seven AI agents review from different perspectives</li>
           <li>Issues are auto-fixed, not just reported</li>
           <li>Iterative convergence: review → fix → validate loops</li>
           <li>Final validation gate ensures green before completion</li>
@@ -1210,18 +1215,19 @@
       <p class="section-label">Extensible</p>
       <h3 style="font-size: clamp(1.3rem, 3vw, 1.7rem); font-weight: 700; letter-spacing: -0.02em; margin-bottom: .75rem; text-align: left;">Custom Reviewers</h3>
       <p style="color: var(--text-muted); font-size: .95rem; max-width: 640px; margin-bottom: 2rem; line-height: 1.7;">
-        Six default reviewer skill files are installed during <code style="font-family: var(--font-mono); font-size: .85rem; color: var(--accent);">lazyspeckit init</code>. Edit any default to tune its behavior, or add new <code style="font-family: var(--font-mono); font-size: .85rem; color: var(--accent);">.md</code> files to create additional reviewers.
+        Seven default reviewer skill files are installed during <code style="font-family: var(--font-mono); font-size: .85rem; color: var(--accent);">lazyspeckit init</code> — five sourced from <a href="https://github.com/msitarzewski/agency-agents" style="color: var(--accent);">Agency</a>, two from LazySpecKit. Edit any default to tune its behavior, or add new <code style="font-family: var(--font-mono); font-size: .85rem; color: var(--accent);">.md</code> files to create additional reviewers.
       </p>
 
       <div class="code-block" style="margin-bottom: 2rem;">
         <div class="code-block-header">
           <span>.lazyspeckit/reviewers/</span>
         </div>
-        <pre>├── architecture.md        <span class="comment"># System design</span>
+        <pre>├── accessibility.md       <span class="comment"># Accessibility &amp; inclusion (from Agency)</span>
+├── architecture.md        <span class="comment"># System design (from Agency)</span>
 ├── code-quality.md        <span class="comment"># Engineering craft</span>
-├── security.md            <span class="comment"># Application security</span>
-├── performance.md         <span class="comment"># Runtime efficiency</span>
-├── spec-compliance.md     <span class="comment"># Requirements coverage</span>
+├── performance.md         <span class="comment"># Runtime efficiency (from Agency)</span>
+├── security.md            <span class="comment"># Application security (from Agency)</span>
+├── spec-compliance.md     <span class="comment"># Requirements coverage (from Agency)</span>
 └── test.md                <span class="comment"># QA &amp; test quality</span></pre>
       </div>
 
@@ -1271,20 +1277,20 @@ Severity guide:
 
     <!-- Agency Integration -->
     <div style="margin-top: 4rem; border-top: 1px solid var(--border); padding-top: 3rem;" id="agency">
-      <p class="section-label">Power-up</p>
+      <p class="section-label">Default Source</p>
       <h3 style="font-size: clamp(1.3rem, 3vw, 1.7rem); font-weight: 700; letter-spacing: -0.02em; margin-bottom: .75rem; text-align: left;">Agency Integration</h3>
       <p style="color: var(--text-muted); font-size: .95rem; max-width: 640px; margin-bottom: 2rem; line-height: 1.7;">
-        <a href="https://github.com/msitarzewski/agency-agents">Agency</a> is a curated collection of specialized AI agent definitions that map directly to LazySpecKit’s reviewer roles — and are often richer than the bundled defaults.
+        <a href="https://github.com/msitarzewski/agency-agents">Agency</a> is a curated collection of specialized AI agent definitions. Five of LazySpecKit’s seven reviewers are <strong style="color:var(--text)">downloaded from the Agency repo by default</strong> during <code style="font-family: var(--font-mono); font-size: .85rem; color: var(--accent);">init</code> and <code style="font-family: var(--font-mono); font-size: .85rem; color: var(--accent);">upgrade</code>. If you have Agency installed locally, matching agents are symlinked instead.
       </p>
 
       <div class="reviewer-options" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 2rem;">
         <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1.25rem;">
-          <h4 style="font-size: .9rem; color: var(--accent); margin-bottom: .5rem;">🔗 init --agency</h4>
-          <p style="color: var(--text-muted); font-size: .85rem; line-height: 1.6;"><strong style="color:var(--text)">Symlinks</strong> Agency agents as reviewers. Updates to your Agency install flow through automatically. Unmapped reviewers are installed from bundled defaults.</p>
+          <h4 style="font-size: .9rem; color: var(--accent); margin-bottom: .5rem;">📥 Downloaded by default</h4>
+          <p style="color: var(--text-muted); font-size: .85rem; line-height: 1.6;">Five reviewers are <strong style="color:var(--text)">downloaded from the Agency GitHub repo</strong> during setup. No local Agency install required. A no-interaction header is injected so they work as review-only agents.</p>
         </div>
         <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1.25rem;">
-          <h4 style="font-size: .9rem; color: var(--accent2); margin-bottom: .5rem;">📋 add-reviewer --from-agency</h4>
-          <p style="color: var(--text-muted); font-size: .85rem; line-height: 1.6;"><strong style="color:var(--text)">Copies</strong> an Agency agent with the no-interaction header injected. Safe to further customize independently.</p>
+          <h4 style="font-size: .9rem; color: var(--accent2); margin-bottom: .5rem;">🔗 Local Agency override</h4>
+          <p style="color: var(--text-muted); font-size: .85rem; line-height: 1.6;">If Agency is installed locally, <code>init</code> auto-detects it and <strong style="color:var(--text)">symlinks</strong> matching agents instead. Updates to your local install flow through automatically. Use <code>--no-agency</code> to skip local overlay.</p>
         </div>
       </div>
 
@@ -1300,12 +1306,15 @@ Severity guide:
       </table>
 
       <div class="code-block" style="margin-bottom: 1rem;">
-        <div class="code-block-header"><span>Initialize with Agency reviewers</span></div>
-        <pre><span class="comment"># Symlink Agency agents as reviewers</span>
-<span class="cmd">lazyspeckit init</span> <span class="flag">--here --ai copilot --agency</span>
+        <div class="code-block-header"><span>Agency reviewers (downloaded by default)</span></div>
+        <pre><span class="comment"># Agency reviewers are downloaded from the Agency repo by default</span>
+<span class="cmd">lazyspeckit init</span> <span class="flag">--here --ai copilot</span>
 
 <span class="comment"># Custom Agency install path</span>
-<span class="cmd">lazyspeckit init</span> <span class="flag">--here --ai copilot --agency --agency-path ~/my-agents</span></pre>
+<span class="cmd">lazyspeckit init</span> <span class="flag">--here --ai copilot --agency-path ~/my-agents</span>
+
+<span class="comment"># Skip local Agency overlay (downloaded defaults are still used)</span>
+<span class="cmd">lazyspeckit init</span> <span class="flag">--here --ai copilot --no-agency</span></pre>
       </div>
 
       <div class="code-block">
@@ -1330,12 +1339,12 @@ Severity guide:
     <p class="section-desc">Everything you can do with the <code>lazyspeckit</code> CLI.</p>
 
     <div class="cli-cmd">
-      <h3>lazyspeckit init <span style="color:var(--text-dim)">[--ai &lt;agent&gt;...] [--agency] [--agency-path &lt;dir&gt;] [specify&nbsp;init&nbsp;args...]</span></h3>
-      <p>Initializes SpecKit and installs LazySpecKit prompts. Use <code>--ai</code> to select agents: <code>copilot</code>, <code>claude</code>, <code>cursor</code>, <code>opencode</code>, or <code>all</code>. With <code>--agency</code>, symlinks <a href="https://github.com/msitarzewski/agency-agents">Agency</a> agents as reviewers instead of bundled defaults.</p>
+      <h3>lazyspeckit init <span style="color:var(--text-dim)">[--ai &lt;agent&gt;...] [--no-agency] [--agency-path &lt;dir&gt;] [specify&nbsp;init&nbsp;args...]</span></h3>
+      <p>Initializes SpecKit and installs LazySpecKit prompts. Use <code>--ai</code> to select agents: <code>copilot</code>, <code>claude</code>, <code>cursor</code>, <code>opencode</code>, or <code>all</code>. Downloads <a href="https://github.com/msitarzewski/agency-agents">Agency</a> reviewers by default. If Agency is installed locally, symlinks matching agents instead. Use <code>--no-agency</code> to skip local overlay.</p>
     </div>
     <div class="cli-cmd">
       <h3>lazyspeckit upgrade <span style="color:var(--text-dim)">[--here | &lt;path&gt;] [--ai &lt;agent&gt;...]</span></h3>
-      <p>Upgrades SpecKit CLI, project files, and LazySpecKit prompts. Auto-detects all configured agents (Copilot, Claude, Cursor, OpenCode) from directory structure. SpecKit failures are non-fatal — prompts always update.</p>
+      <p>Upgrades SpecKit CLI, project files, LazySpecKit prompts, and reviewer skill files. Auto-detects all configured agents (Copilot, Claude, Cursor, OpenCode) from directory structure. Downloads latest Agency reviewers. SpecKit failures are non-fatal — prompts and reviewers always update.</p>
     </div>
     <div class="cli-cmd">
       <h3>lazyspeckit doctor <span style="color:var(--text-dim)">[--here | &lt;path&gt;]</span></h3>

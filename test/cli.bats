@@ -30,13 +30,20 @@ if [[ -n "$outfile" ]]; then
       'mkdir -p "$target/.github/prompts" "$target/.claude/commands" "$target/.lazyspeckit/reviewers"' \
       'echo "LazySpecKit speckit prompt" > "$target/.github/prompts/LazySpecKit.prompt.md"' \
       'echo "LazySpecKit speckit prompt" > "$target/.claude/commands/LazySpecKit.md"' \
-      'for f in architecture.md code-quality.md spec-compliance.md test.md; do' \
-      '  echo "reviewer $f" > "$target/.lazyspeckit/reviewers/$f"' \
-      '  hash=$(shasum -a 256 "$target/.lazyspeckit/reviewers/$f" | cut -d" " -f1)' \
-      '  echo "<!-- lazyspeckit-hash:$hash -->" >> "$target/.lazyspeckit/reviewers/$f"' \
+      'for f in architecture.md security.md performance.md accessibility.md spec-compliance.md code-quality.md test.md; do' \
+      '  dst="$target/.lazyspeckit/reviewers/$f"' \
+      '  if [ ! -f "$dst" ] || grep -q "^<!-- lazyspeckit-hash:" "$dst" 2>/dev/null; then' \
+      '    echo "reviewer $f" > "$dst"' \
+      '    hash=$(shasum -a 256 "$dst" | cut -d" " -f1)' \
+      '    echo "<!-- lazyspeckit-hash:$hash -->" >> "$dst"' \
+      '  fi' \
       'done' \
       'echo "Prompts installed"' \
       'echo "Reviewer skill files installed"' > "$outfile"
+  elif [[ "$url" == *msitarzewski/agency-agents* ]]; then
+    local fname
+    fname="$(echo "$url" | sed 's/.*agents\///' | sed 's/?.*//')"
+    printf '%s\n' "---" "name: Agency $fname" "description: Agency agent" "---" "" "You are an Agency agent for $fname" > "$outfile"
   elif [[ "$url" == *reviewers/*.md* ]]; then
     local fname
     fname="$(echo "$url" | sed 's/.*reviewers\///' | sed 's/?.*//')"
@@ -1911,6 +1918,7 @@ S
   run run_cli upgrade "$repo" --ai copilot
   [ "$status" -eq 0 ]
   [ -f "$repo/.lazyspeckit/reviewers/architecture.md" ]
+  [ -f "$repo/.lazyspeckit/reviewers/security.md" ]
   [ -f "$repo/.lazyspeckit/reviewers/code-quality.md" ]
   [ -f "$repo/.lazyspeckit/reviewers/spec-compliance.md" ]
   [ -f "$repo/.lazyspeckit/reviewers/test.md" ]
@@ -2169,29 +2177,29 @@ AGENT
   [ -f "$repo/.lazyspeckit/reviewers/testing-reality-checker.md" ]
 }
 
-# ============ init --agency ============
+# ============ Agency auto-detection ============
 
-@test "cli: init --agency creates symlinked reviewers" {
+@test "cli: init auto-detects agency and creates symlinked reviewers" {
   local repo
   repo="$(create_test_repo)"
   cd "$repo"
   local agency_dir
   agency_dir="$(create_agency_dir)"
 
-  run run_cli init --here --ai copilot --agency --agency-path "$agency_dir"
+  run run_cli init --here --ai copilot --agency-path "$agency_dir"
   [ "$status" -eq 0 ]
   [[ "$output" == *"Agency reviewers"* ]]
   [[ "$output" == *"linked"* ]]
 }
 
-@test "cli: init --agency symlinks mapped reviewers" {
+@test "cli: init auto-detects agency and symlinks mapped reviewers" {
   local repo
   repo="$(create_test_repo)"
   cd "$repo"
   local agency_dir
   agency_dir="$(create_agency_dir)"
 
-  run run_cli init --here --ai copilot --agency --agency-path "$agency_dir"
+  run run_cli init --here --ai copilot --agency-path "$agency_dir"
   [ "$status" -eq 0 ]
 
   # Mapped reviewers should be symlinks
@@ -2202,14 +2210,14 @@ AGENT
   [ -L "$repo/.lazyspeckit/reviewers/architecture.md" ]
 }
 
-@test "cli: init --agency preserves unmapped bundled reviewers" {
+@test "cli: init auto-detects agency and preserves unmapped bundled reviewers" {
   local repo
   repo="$(create_test_repo)"
   cd "$repo"
   local agency_dir
   agency_dir="$(create_agency_dir)"
 
-  run run_cli init --here --ai copilot --agency --agency-path "$agency_dir"
+  run run_cli init --here --ai copilot --agency-path "$agency_dir"
   [ "$status" -eq 0 ]
 
   # Unmapped reviewers should still exist as regular files from setup.sh
@@ -2220,14 +2228,14 @@ AGENT
   [ ! -L "$repo/.lazyspeckit/reviewers/test.md" ]
 }
 
-@test "cli: init --agency symlinks point to agency files" {
+@test "cli: init auto-detects agency and symlinks point to agency files" {
   local repo
   repo="$(create_test_repo)"
   cd "$repo"
   local agency_dir
   agency_dir="$(create_agency_dir)"
 
-  run run_cli init --here --ai copilot --agency --agency-path "$agency_dir"
+  run run_cli init --here --ai copilot --agency-path "$agency_dir"
   [ "$status" -eq 0 ]
 
   # Verify symlink target
@@ -2236,29 +2244,30 @@ AGENT
   [[ "$target" == *"testing/testing-reality-checker.md" ]]
 }
 
-@test "cli: init --agency detects agency from HOME" {
+@test "cli: init auto-detects agency from HOME" {
   local repo
   repo="$(create_test_repo)"
   cd "$repo"
   create_agency_dir  # creates under $TEST_TMPDIR/.claude/agents, HOME=$TEST_TMPDIR
 
-  run run_cli init --here --ai copilot --agency
+  run run_cli init --here --ai copilot
   [ "$status" -eq 0 ]
   [[ "$output" == *"Agency reviewers"* ]]
 }
 
-@test "cli: init --agency fails when no agency found" {
+@test "cli: init without agency installed silently uses bundled reviewers" {
   local repo
   repo="$(create_test_repo)"
   cd "$repo"
   # No agency dir created, HOME=$TEST_TMPDIR has no .claude/agents
 
-  run run_cli init --here --ai copilot --agency
-  [ "$status" -ne 0 ]
-  [[ "$output" == *"Agency installation not found"* ]]
+  run run_cli init --here --ai copilot
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"Agency reviewers"* ]]
+  [[ "$output" == *"Done"* ]]
 }
 
-@test "cli: init --agency with --agency-path overrides detection" {
+@test "cli: init with --agency-path overrides detection" {
   local repo
   repo="$(create_test_repo)"
   cd "$repo"
@@ -2266,12 +2275,12 @@ AGENT
   mkdir -p "$custom_dir/testing" "$custom_dir/engineering"
   echo "---\nname: Custom\n---\nCustom agent" > "$custom_dir/testing/testing-reality-checker.md"
 
-  run run_cli init --here --ai copilot --agency --agency-path "$custom_dir"
+  run run_cli init --here --ai copilot --agency-path "$custom_dir"
   [ "$status" -eq 0 ]
   [[ "$output" == *"from: $custom_dir"* ]]
 }
 
-@test "cli: init --agency preserves user-customized reviewers" {
+@test "cli: init auto-detects agency and preserves user-customized reviewers" {
   local repo
   repo="$(create_test_repo)"
   cd "$repo"
@@ -2282,7 +2291,7 @@ AGENT
   mkdir -p "$repo/.lazyspeckit/reviewers"
   echo "My custom security review rules" > "$repo/.lazyspeckit/reviewers/security.md"
 
-  run run_cli init --here --ai copilot --agency --agency-path "$agency_dir"
+  run run_cli init --here --ai copilot --agency-path "$agency_dir"
   [ "$status" -eq 0 ]
   [[ "$output" == *"custom (kept)"* ]]
 
@@ -2293,7 +2302,7 @@ AGENT
   [[ "$content" == *"My custom security review rules"* ]]
 }
 
-@test "cli: init --agency replaces previous symlinks" {
+@test "cli: init auto-detects agency and replaces previous symlinks" {
   local repo
   repo="$(create_test_repo)"
   cd "$repo"
@@ -2301,17 +2310,17 @@ AGENT
   agency_dir="$(create_agency_dir)"
 
   # First init with agency
-  run run_cli init --here --ai copilot --agency --agency-path "$agency_dir"
+  run run_cli init --here --ai copilot --agency-path "$agency_dir"
   [ "$status" -eq 0 ]
   [ -L "$repo/.lazyspeckit/reviewers/spec-compliance.md" ]
 
   # Second init with agency should succeed (replaces existing symlinks)
-  run run_cli init --here --ai copilot --agency --agency-path "$agency_dir"
+  run run_cli init --here --ai copilot --agency-path "$agency_dir"
   [ "$status" -eq 0 ]
   [ -L "$repo/.lazyspeckit/reviewers/spec-compliance.md" ]
 }
 
-@test "cli: init --agency warns about missing agents" {
+@test "cli: init auto-detects agency and warns about missing agents" {
   local repo
   repo="$(create_test_repo)"
   cd "$repo"
@@ -2320,20 +2329,25 @@ AGENT
   mkdir -p "$agency_dir/testing"
   echo "---\nname: Checker\n---\nAgent" > "$agency_dir/testing/testing-reality-checker.md"
 
-  run run_cli init --here --ai copilot --agency --agency-path "$agency_dir"
+  run run_cli init --here --ai copilot --agency-path "$agency_dir"
   [ "$status" -eq 0 ]
   [[ "$output" == *"not found"* ]]
 }
 
-@test "cli: init without --agency works as before" {
+@test "cli: init --no-agency skips agency even when installed" {
   local repo
   repo="$(create_test_repo)"
   cd "$repo"
+  create_agency_dir
 
-  run run_cli init --here --ai copilot
+  run run_cli init --here --ai copilot --no-agency
   [ "$status" -eq 0 ]
-  [[ "$output" != *"Agency"* ]]
+  [[ "$output" != *"Agency reviewers"* ]]
   [[ "$output" == *"Done"* ]]
+
+  # All reviewers should be regular files, not symlinks
+  [ ! -L "$repo/.lazyspeckit/reviewers/spec-compliance.md" ]
+  [ ! -L "$repo/.lazyspeckit/reviewers/security.md" ]
 }
 
 @test "cli: usage includes add-reviewer command" {
@@ -2343,23 +2357,35 @@ AGENT
   [[ "$output" == *"--from-agency"* ]]
 }
 
-@test "cli: usage includes --agency flag" {
+@test "cli: usage includes --no-agency flag" {
   run run_cli --help
   [ "$status" -eq 0 ]
-  [[ "$output" == *"--agency"* ]]
+  [[ "$output" == *"--no-agency"* ]]
   [[ "$output" == *"Agency"* ]]
+}
+
+@test "cli: init --agency flag accepted for backward compatibility" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  local agency_dir
+  agency_dir="$(create_agency_dir)"
+
+  run run_cli init --here --ai copilot --agency --agency-path "$agency_dir"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Agency reviewers"* ]]
 }
 
 # ============ agency utility functions ============
 
 @test "cli: detect_agency_dir finds ~/.claude/agents via init" {
-  # Integration test: init --agency detects HOME/.claude/agents
+  # Integration test: init auto-detects HOME/.claude/agents
   local repo
   repo="$(create_test_repo)"
   cd "$repo"
   create_agency_dir  # creates agents under $TEST_TMPDIR/.claude/agents
 
-  run run_cli init --here --ai copilot --agency
+  run run_cli init --here --ai copilot
   [ "$status" -eq 0 ]
   [[ "$output" == *".claude/agents"* ]]
 }
@@ -2377,18 +2403,17 @@ AGENT
   echo '---' >> "$custom_path/testing/testing-reality-checker.md"
   echo 'Custom agent' >> "$custom_path/testing/testing-reality-checker.md"
 
-  run run_cli init --here --ai copilot --agency --agency-path "$custom_path"
+  run run_cli init --here --ai copilot --agency-path "$custom_path"
   [ "$status" -eq 0 ]
   [[ "$output" == *"$custom_path"* ]]
 }
 
-@test "cli: detect_agency_dir fails when nothing found via init" {
+@test "cli: --agency-path to nonexistent dir fails" {
   local repo
   repo="$(create_test_repo)"
   cd "$repo"
-  # No agency dir exists
 
-  run run_cli init --here --ai copilot --agency
+  run run_cli init --here --ai copilot --agency-path /tmp/nonexistent-agency-dir-42
   [ "$status" -ne 0 ]
   [[ "$output" == *"Agency installation not found"* ]]
 }
