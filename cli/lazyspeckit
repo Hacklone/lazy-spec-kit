@@ -177,6 +177,7 @@ opencode_prompt_present() { [[ -f "${1:-/__missing__}/.opencode/agent/LazySpecKi
 
 # ---------- ai detection ----------
 extract_ai_from_args() {
+  trap - ERR
   [[ $# -eq 0 ]] && return 1
   local args=("$@")
   local i
@@ -194,6 +195,8 @@ extract_ai_from_args() {
 }
 
 resolve_ai_targets() {
+  # Suppress inherited ERR trap — return 1 is normal control flow here.
+  trap - ERR
   # Returns space-separated list of PRIMARY AI targets (copilot/claude).
   # Reads from explicit --ai flags (skipping extra agents); falls back to auto-detect.
   local target="${1:-}"; shift || true
@@ -508,6 +511,8 @@ AGENCY_REVIEWER_MAP=(
 NO_INTERACTION_HEADER='**You MUST NOT ask the user any questions.** Your output is findings only. If something is ambiguous, make a reasonable judgment call based on the spec, constitution, and codebase conventions — do not ask for clarification.'
 
 detect_agency_dir() {
+  # Suppress inherited ERR trap — return 1 is normal control flow here.
+  trap - ERR
   local custom_path="${1:-}"
   if [[ -n "$custom_path" ]]; then
     [[ -d "$custom_path" ]] || return 1
@@ -525,6 +530,7 @@ detect_agency_dir() {
 }
 
 find_agency_agent() {
+  trap - ERR
   local agency_dir="${1:-}" agent_name="${2:-}"
   [[ -n "$agency_dir" && -n "$agent_name" ]] || return 1
 
@@ -943,6 +949,7 @@ cmd_add_reviewer() {
 
 # ---------- doctor/version/self-update ----------
 remote_cli_version() {
+  trap - ERR
   local tmp=""
   tmp="$(mktemp)"
   trap 'rm -f "${tmp:-}"' RETURN

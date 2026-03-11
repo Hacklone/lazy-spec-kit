@@ -2863,14 +2863,24 @@ _assert_no_unbound_vars() {
   fi
 }
 
+_assert_no_err_trap() {
+  # Fail if the ERR trap fired with a spurious "Failed (exit" message
+  if [[ "${output:-}" == *"Failed (exit"* ]]; then
+    echo "FAIL: ERR trap fired unexpectedly in output: $output" >&2
+    return 1
+  fi
+}
+
 @test "nounset: version produces no unbound variable errors" {
   run run_cli version
   _assert_no_unbound_vars
+  _assert_no_err_trap
 }
 
 @test "nounset: --help produces no unbound variable errors" {
   run run_cli --help
   _assert_no_unbound_vars
+  _assert_no_err_trap
 }
 
 @test "nounset: doctor produces no unbound variable errors" {
@@ -2878,6 +2888,7 @@ _assert_no_unbound_vars() {
   repo="$(create_test_repo)"
   run run_cli doctor "$repo"
   _assert_no_unbound_vars
+  _assert_no_err_trap
 }
 
 @test "nounset: init produces no unbound variable errors" {
@@ -2886,6 +2897,20 @@ _assert_no_unbound_vars() {
   cd "$repo"
   run run_cli init --here --ai copilot
   _assert_no_unbound_vars
+  _assert_no_err_trap
+}
+
+@test "nounset: init without Agency dirs produces no errors" {
+  # Simulate no Agency installation (HOME has no .claude/agents or .github/agents)
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  # Ensure no agency dirs exist under the fake HOME
+  rm -rf "$TEST_TMPDIR/.claude/agents" "$TEST_TMPDIR/.github/agents"
+  run run_cli init --here --ai copilot
+  [ "$status" -eq 0 ]
+  _assert_no_unbound_vars
+  _assert_no_err_trap
 }
 
 @test "nounset: upgrade produces no unbound variable errors" {
@@ -2894,6 +2919,7 @@ _assert_no_unbound_vars() {
   create_fake_specify
   run run_cli upgrade "$repo" --ai copilot
   _assert_no_unbound_vars
+  _assert_no_err_trap
 }
 
 @test "nounset: self-update produces no unbound variable errors" {
@@ -2905,4 +2931,5 @@ SCRIPT
   chmod +x "$fake_self"
   run run_cli self-update
   _assert_no_unbound_vars
+  _assert_no_err_trap
 }
