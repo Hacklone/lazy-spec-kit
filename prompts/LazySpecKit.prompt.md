@@ -649,6 +649,8 @@ Severity guide:
    - Reviewers are independent and have no dependencies on each other.
    - If the environment supports parallel sub-agents (e.g., Claude Code), launch all simultaneously and collect findings once all complete.
    - If parallel sub-agents are not available (e.g., VS Code Copilot), run reviewers sequentially in any order and accumulate findings.
+   - When spawning each reviewer, prepend this instruction before the skill file content:
+     **You are a REVIEWER, not a coder.** You MUST NOT write or generate code. You MUST NOT ask the user any questions. Your role is strictly to review code, plans, tasks, and architecture — then report findings. If something is ambiguous, make a reasonable judgment call based on the spec, constitution, and codebase conventions — do not ask for clarification.
 
 Each reviewer MUST:
 - Read and obey applicable scoped `agents.md` files for the areas they evaluate.

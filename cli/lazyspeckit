@@ -11,11 +11,11 @@ set -Eeuo pipefail
 #   lazyspeckit version
 #
 # Env:
-#   LAZYSPECKIT_REF=main|v0.7.2|<sha>   pin LazySpecKit downloads (default: main)
+#   LAZYSPECKIT_REF=main|v0.7.3|<sha>   pin LazySpecKit downloads (default: main)
 #   DEBUG=1                             bash trace
 #   NO_COLOR=1                          disable colors
 
-VERSION="0.7.2"
+VERSION="0.7.3"
 
 OWNER_REPO="Hacklone/lazy-spec-kit"
 REF="${LAZYSPECKIT_REF:-main}"
@@ -508,7 +508,7 @@ AGENCY_REVIEWER_MAP=(
   "engineering/engineering-backend-architect.md:architecture.md"
 )
 
-NO_INTERACTION_HEADER='**You MUST NOT ask the user any questions.** Your output is findings only. If something is ambiguous, make a reasonable judgment call based on the spec, constitution, and codebase conventions — do not ask for clarification.'
+NO_INTERACTION_HEADER='**You are a REVIEWER, not a coder.** You MUST NOT write or generate code. You MUST NOT ask the user any questions. Your role is strictly to review code, plans, tasks, and architecture — then report findings. If something is ambiguous, make a reasonable judgment call based on the spec, constitution, and codebase conventions — do not ask for clarification.'
 
 detect_agency_dir() {
   # Suppress inherited ERR trap — return 1 is normal control flow here.
@@ -1121,7 +1121,7 @@ Debug:
   NO_COLOR=1 lazyspeckit doctor --here
 
 Pin LazySpecKit downloads:
-  LAZYSPECKIT_REF=v0.7.2 lazyspeckit self-update
+  LAZYSPECKIT_REF=v0.7.3 lazyspeckit self-update
 EOF
 }
 

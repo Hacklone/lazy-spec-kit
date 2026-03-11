@@ -28,7 +28,7 @@ AGENCY_REVIEWER_MAP=(
   "engineering/engineering-backend-architect.md:architecture.md"
 )
 
-NO_INTERACTION_HEADER='**You MUST NOT ask the user any questions.** Your output is findings only. If something is ambiguous, make a reasonable judgment call based on the spec, constitution, and codebase conventions — do not ask for clarification.'
+NO_INTERACTION_HEADER='**You are a REVIEWER, not a coder.** You MUST NOT write or generate code. You MUST NOT ask the user any questions. Your role is strictly to review code, plans, tasks, and architecture — then report findings. If something is ambiguous, make a reasonable judgment call based on the spec, constitution, and codebase conventions — do not ask for clarification.'
 
 # Unmapped reviewer skill files (repo paths → installed to .lazyspeckit/reviewers/)
 REVIEWER_FILES=(
