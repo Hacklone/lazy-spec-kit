@@ -11,11 +11,11 @@ set -Eeuo pipefail
 #   lazyspeckit version
 #
 # Env:
-#   LAZYSPECKIT_REF=main|v0.7.1|<sha>   pin LazySpecKit downloads (default: main)
+#   LAZYSPECKIT_REF=main|v0.7.2|<sha>   pin LazySpecKit downloads (default: main)
 #   DEBUG=1                             bash trace
 #   NO_COLOR=1                          disable colors
 
-VERSION="0.7.1"
+VERSION="0.7.2"
 
 OWNER_REPO="Hacklone/lazy-spec-kit"
 REF="${LAZYSPECKIT_REF:-main}"
@@ -427,9 +427,9 @@ upgrade_speckit_project_files() {
 
   info "Upgrading SpecKit project files in: $target"
 
-  local backup_dir
+  local backup_dir=""
   backup_dir="$(mktemp -d)"
-  trap "rm -rf '$backup_dir'" RETURN
+  trap 'rm -rf "${backup_dir:-}"' RETURN
 
   backup_speckit_customizations "$target" "$backup_dir"
 
@@ -454,9 +454,9 @@ run_setup() {
   local target="${1:-}"
   [[ -n "$target" ]] || die "run_setup: missing target"
 
-  local tmp
+  local tmp=""
   tmp="$(mktemp)"
-  trap 'rm -f "$tmp"' RETURN
+  trap 'rm -f "${tmp:-}"' RETURN
 
   local url
   url="$(cache_bust "$(raw_url "$SETUP_REPO_PATH")")"
@@ -943,9 +943,9 @@ cmd_add_reviewer() {
 
 # ---------- doctor/version/self-update ----------
 remote_cli_version() {
-  local tmp
+  local tmp=""
   tmp="$(mktemp)"
-  trap 'rm -f "$tmp"' RETURN
+  trap 'rm -f "${tmp:-}"' RETURN
   local url
   url="$(cache_bust "$(raw_url "$CLI_REPO_PATH")")"
   fetch "$url" "$tmp" || return 1
@@ -989,9 +989,9 @@ cmd_self_update() {
     exit 1
   fi
 
-  local tmp
+  local tmp=""
   tmp="$(mktemp)"
-  trap 'rm -f "$tmp"' RETURN
+  trap 'rm -f "${tmp:-}"' RETURN
 
   local url
   url="$(cache_bust "$(raw_url "$CLI_REPO_PATH")")"
@@ -1114,7 +1114,7 @@ Debug:
   NO_COLOR=1 lazyspeckit doctor --here
 
 Pin LazySpecKit downloads:
-  LAZYSPECKIT_REF=v0.7.1 lazyspeckit self-update
+  LAZYSPECKIT_REF=v0.7.2 lazyspeckit self-update
 EOF
 }
 

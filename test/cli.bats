@@ -51,7 +51,7 @@ if [[ -n "$outfile" ]]; then
   elif [[ "$url" == *lazyspeckit* ]]; then
     printf '%s\n' \
       '#!/usr/bin/env bash' \
-      'VERSION="0.7.1"' \
+      'VERSION="0.7.2"' \
       '# lazyspeckit marker' \
       'echo "lazyspeckit $VERSION"' > "$outfile"
   else
@@ -65,14 +65,10 @@ CURLSCRIPT
 
 # ---- helper to run the CLI in a controlled environment ----
 run_cli() {
-  # tmp="" backup_dir="" works around RETURN traps in run_setup()/upgrade_speckit_project_files()
-  # that reference local vars after scope ends (set -u catches them)
   NO_COLOR=1 \
   DEBUG="${DEBUG:-0}" \
   LAZYSPECKIT_REF="${LAZYSPECKIT_REF:-main}" \
   HOME="$TEST_TMPDIR" \
-  tmp="" \
-  backup_dir="" \
   bash "$CLI" "$@"
 }
 
@@ -86,9 +82,6 @@ setup() {
   export PATH="$FAKE_BIN:$PATH"
   export NO_COLOR=1
   export DEBUG=0
-  # Work around RETURN trap leak from inner functions referencing local vars
-  export tmp=""
-  export backup_dir=""
 
   # Most commands need uv/uvx
   create_fake_uv
@@ -2856,4 +2849,60 @@ AGENT
   run run_cli --help
   [ "$status" -eq 0 ]
   [[ "$output" == *"AI agents (--ai)"* ]]
+}
+
+# ============ nounset / unbound variable regression ============
+# These tests ensure no unbound variable errors occur under set -u.
+# They run WITHOUT the tmp=/backup_dir= workarounds that previously masked the issue.
+
+_assert_no_unbound_vars() {
+  # Fail if stderr contains "unbound variable"
+  if [[ "${output:-}" == *"unbound variable"* ]]; then
+    echo "FAIL: unbound variable detected in output: $output" >&2
+    return 1
+  fi
+}
+
+@test "nounset: version produces no unbound variable errors" {
+  run run_cli version
+  _assert_no_unbound_vars
+}
+
+@test "nounset: --help produces no unbound variable errors" {
+  run run_cli --help
+  _assert_no_unbound_vars
+}
+
+@test "nounset: doctor produces no unbound variable errors" {
+  local repo
+  repo="$(create_test_repo)"
+  run run_cli doctor "$repo"
+  _assert_no_unbound_vars
+}
+
+@test "nounset: init produces no unbound variable errors" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  run run_cli init --here --ai copilot
+  _assert_no_unbound_vars
+}
+
+@test "nounset: upgrade produces no unbound variable errors" {
+  local repo
+  repo="$(create_test_repo)"
+  create_fake_specify
+  run run_cli upgrade "$repo" --ai copilot
+  _assert_no_unbound_vars
+}
+
+@test "nounset: self-update produces no unbound variable errors" {
+  local fake_self="$FAKE_BIN/lazyspeckit"
+  cat > "$fake_self" <<'SCRIPT'
+#!/usr/bin/env bash
+echo "lazyspeckit 0.5.0"
+SCRIPT
+  chmod +x "$fake_self"
+  run run_cli self-update
+  _assert_no_unbound_vars
 }

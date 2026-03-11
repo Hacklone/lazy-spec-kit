@@ -716,3 +716,12 @@ SCRIPT
   [ "$status" -eq 0 ]
   [[ "$output" == "https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/main/prompts/LazySpecKit.prompt.md" ]]
 }
+
+# ============ nounset / unbound variable regression ============
+
+@test "nounset: setup.sh produces no unbound variable errors" {
+  local repo
+  repo="$(create_bare_repo)"
+  run run_setup "$repo"
+  [[ "${output:-}" != *"unbound variable"* ]]
+}

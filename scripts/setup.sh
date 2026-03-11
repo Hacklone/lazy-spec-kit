@@ -196,9 +196,9 @@ main() {
 
   info "Installing LazySpecKit prompts into: $target (ref: $REF)"
 
-  local tmp
+  local tmp=""
   tmp="$(mktemp)"
-  trap 'rm -f "$tmp"' RETURN
+  trap 'rm -f "${tmp:-}"' RETURN
 
   local url
   url="$(cache_bust "$(raw_url)")"
