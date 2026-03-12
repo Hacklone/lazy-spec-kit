@@ -10,10 +10,11 @@ You are reviewing ONLY the changes produced by this implementation. Do not revie
 ## Architecture Context
 
 Before reviewing, read the architecture documentation (if it exists) from `.docs/architecture/`:
-- `summary.md` — high-level overview, core domains, reusable services
-- `system.md` — detailed system architecture, components, integrations
+- `summary.md` — high-level overview, architecture style, reusable components
 - `principles.md` — architecture rules and constraints
-- `domain-map.md` — domain ownership, responsibilities, dependency graph
+- `index.md` — routing table mapping keywords to component docs
+
+Then load relevant component docs from `components/` based on the scope of the changes.
 
 Use this context throughout the review. If architecture docs are not present, review based on the codebase structure and conventions.
 
@@ -27,7 +28,7 @@ Use this context throughout the review. If architecture docs are not present, re
 ## What to look for
 
 ### Service reuse
-- **Duplicate services** — Does the implementation create a new service or utility when an equivalent already exists? Check `summary.md` Reusable Services and `domain-map.md` Services Provided.
+- **Duplicate services** — Does the implementation create a new service or utility when an equivalent already exists? Check `summary.md` Reusable Services and `index.md` routing table.
 - **Redundant abstractions** — Are there new wrappers, helpers, or adapters that duplicate existing functionality?
 - **Missed reuse opportunities** — Could shared infrastructure (logging, validation, auth, caching) be leveraged instead of building from scratch?
 

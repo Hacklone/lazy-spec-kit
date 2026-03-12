@@ -24,7 +24,7 @@ Examples:
 - Services communicate via defined APIs or events — never direct database access
 - Each service owns its data store exclusively
 - No cross-service database queries
-- Frontend apps access backend only through API services
+- Apps access services only through defined APIs — never internal modules directly
 -->
 
 ## Dependency Direction

@@ -14,11 +14,11 @@ set -Eeuo pipefail
 #   lazyspeckit architecture:show  [--here | <path>]
 #
 # Env:
-#   LAZYSPECKIT_REF=main|v0.8.1|<sha>   pin LazySpecKit downloads (default: main)
+#   LAZYSPECKIT_REF=main|v0.8.2|<sha>   pin LazySpecKit downloads (default: main)
 #   DEBUG=1                             bash trace
 #   NO_COLOR=1                          disable colors
 
-VERSION="0.8.1"
+VERSION="0.8.2"
 
 OWNER_REPO="Hacklone/lazy-spec-kit"
 REF="${LAZYSPECKIT_REF:-main}"
@@ -664,8 +664,8 @@ copy_agency_agent_as_reviewer() {
 # ---------- architecture ----------
 ARCH_DIR=".docs/architecture"
 ARCH_TEMPLATE_FILES=(index.md summary.md principles.md)
-ARCH_DIRS=(components/services components/apps components/libs integrations decisions)
-ARCH_EXAMPLE_DOCS=(components/services/overview-example.md components/apps/overview-example.md components/libs/overview-example.md)
+ARCH_DIRS=(components integrations decisions)
+ARCH_EXAMPLE_DOCS=(components/example/overview.md components/example/modules.md components/example/api.md components/example/ui.md)
 
 arch_dir_exists() { [[ -d "${1:-/__missing__}/$ARCH_DIR" ]]; }
 
@@ -772,49 +772,19 @@ cmd_arch_check() {
 
   local arch_root="$target/$ARCH_DIR"
 
-  # Scan for services (flat overview-*.md files, excluding overview-example.md)
-  local services_dir="$arch_root/components/services"
-  local -a found_services=()
-  if [[ -d "$services_dir" ]]; then
-    local sf
-    for sf in "$services_dir"/overview-*.md; do
-      [[ -f "$sf" ]] || continue
-      local sname
-      sname="$(basename "$sf" .md)"
-      sname="${sname#overview-}"
-      [[ "$sname" == "example" ]] && continue
-      found_services+=("$sname")
-    done
-  fi
-
-  # Scan for apps (flat overview-*.md files, excluding overview-example.md)
-  local apps_dir="$arch_root/components/apps"
-  local -a found_apps=()
-  if [[ -d "$apps_dir" ]]; then
-    local af
-    for af in "$apps_dir"/overview-*.md; do
-      [[ -f "$af" ]] || continue
-      local aname
-      aname="$(basename "$af" .md)"
-      aname="${aname#overview-}"
-      [[ "$aname" == "example" ]] && continue
-      found_apps+=("$aname")
-    done
-  fi
-
-  # Scan for libs (flat overview-*.md files, excluding overview-example.md)
-  local libs_dir="$arch_root/components/libs"
-  local -a found_libs=()
-  if [[ -d "$libs_dir" ]]; then
-    local lf
-    for lf in "$libs_dir"/overview-*.md; do
-      [[ -f "$lf" ]] || continue
-      local lname
-      lname="$(basename "$lf" .md)"
-      lname="${lname#overview-}"
-      [[ "$lname" == "example" ]] && continue
-      found_libs+=("$lname")
-    done
+  # Scan for components (any directory with overview.md, excluding example/)
+  local comp_dir="$arch_root/components"
+  local -a found_components=()
+  if [[ -d "$comp_dir" ]]; then
+    local ov
+    while IFS= read -r ov; do
+      local comp_path
+      comp_path="$(dirname "$ov")"
+      local comp_name
+      comp_name="${comp_path#$comp_dir/}"
+      [[ "$comp_name" == "example" || "$comp_name" == example/* ]] && continue
+      found_components+=("$comp_name")
+    done < <(find "$comp_dir" -name overview.md 2>/dev/null | sort)
   fi
 
   # Scan for integrations
@@ -864,19 +834,18 @@ cmd_arch_check() {
     project_dirs+=("$pd_name")
   done
 
-  # Suggest undocumented project directories (not in services, apps, or libs)
-  local -a all_documented=()
-  all_documented+=("${found_services[@]+"${found_services[@]}"}")
-  all_documented+=("${found_apps[@]+"${found_apps[@]}"}")
-  all_documented+=("${found_libs[@]+"${found_libs[@]}"}")
-
+  # Suggest undocumented project directories
   local -a undocumented=()
   local pdir
   for pdir in "${project_dirs[@]+"${project_dirs[@]}"}" ; do
     local found="false"
     local existing
-    for existing in "${all_documented[@]+"${all_documented[@]}"}" ; do
-      [[ "$existing" == "$pdir" ]] && { found="true"; break; }
+    for existing in "${found_components[@]+"${found_components[@]}"}" ; do
+      # Match if component name equals the dir or starts with the dir
+      if [[ "$existing" == "$pdir" || "$existing" == "$pdir/"* ]]; then
+        found="true"
+        break
+      fi
     done
     [[ "$found" == "false" ]] && undocumented+=("$pdir")
   done
@@ -890,9 +859,7 @@ cmd_arch_check() {
 
   # Report
   ok "Architecture check complete"
-  echo "  Services: ${#found_services[@]} documented"
-  echo "  Apps: ${#found_apps[@]} documented"
-  echo "  Libraries: ${#found_libs[@]} documented"
+  echo "  Components: ${#found_components[@]} documented"
   echo "  Integrations: ${#found_integrations[@]} documented"
   echo "  Decisions: ${#found_decisions[@]} recorded"
 
@@ -905,7 +872,7 @@ cmd_arch_check() {
     info "Suggested (project directories without architecture docs):"
     local md
     for md in "${undocumented[@]}"; do
-      echo "  - $md  →  add overview-${md}.md to $ARCH_DIR/components/services/, apps/, or libs/"
+      echo "  - $md  →  create $ARCH_DIR/components/${md}/overview.md"
     done
   fi
 }
@@ -938,61 +905,23 @@ cmd_arch_show() {
   done
   echo
 
-  # Services
-  echo "Services:"
-  if [[ -d "$arch_root/components/services" ]]; then
-    local sf
-    local has_services="false"
-    for sf in "$arch_root/components/services"/overview-*.md; do
-      [[ -f "$sf" ]] || continue
-      local sname
-      sname="$(basename "$sf" .md)"
-      sname="${sname#overview-}"
-      [[ "$sname" == "example" ]] && continue
-      has_services="true"
-      echo "  $(c "36" "•") $sname"
-    done
-    if [[ "$has_services" == "false" ]]; then echo "  (none)"; fi
-  else
-    echo "  (none)"
-  fi
-  echo
-
-  # Apps
-  echo "Apps:"
-  if [[ -d "$arch_root/components/apps" ]]; then
-    local af
-    local has_apps="false"
-    for af in "$arch_root/components/apps"/overview-*.md; do
-      [[ -f "$af" ]] || continue
-      local aname
-      aname="$(basename "$af" .md)"
-      aname="${aname#overview-}"
-      [[ "$aname" == "example" ]] && continue
-      has_apps="true"
-      echo "  $(c "36" "•") $aname"
-    done
-    if [[ "$has_apps" == "false" ]]; then echo "  (none)"; fi
-  else
-    echo "  (none)"
-  fi
-  echo
-
-  # Libraries
-  echo "Libraries:"
-  if [[ -d "$arch_root/components/libs" ]]; then
-    local lf
-    local has_libs="false"
-    for lf in "$arch_root/components/libs"/overview-*.md; do
-      [[ -f "$lf" ]] || continue
-      local lname
-      lname="$(basename "$lf" .md)"
-      lname="${lname#overview-}"
-      [[ "$lname" == "example" ]] && continue
-      has_libs="true"
-      echo "  $(c "36" "•") $lname"
-    done
-    if [[ "$has_libs" == "false" ]]; then echo "  (none)"; fi
+  # Components
+  echo "Components:"
+  if [[ -d "$arch_root/components" ]]; then
+    local has_components="false"
+    local ov
+    while IFS= read -r ov; do
+      local comp_path
+      comp_path="$(dirname "$ov")"
+      local comp_name
+      comp_name="${comp_path#$arch_root/components/}"
+      [[ "$comp_name" == "example" || "$comp_name" == example/* ]] && continue
+      has_components="true"
+      local doc_count
+      doc_count="$(find "$comp_path" -maxdepth 1 -name '*.md' | wc -l | tr -d ' ')"
+      echo "  $(c "36" "•") $comp_name ($doc_count docs)"
+    done < <(find "$arch_root/components" -name overview.md 2>/dev/null | sort)
+    if [[ "$has_components" == "false" ]]; then echo "  (none)"; fi
   else
     echo "  (none)"
   fi
@@ -1531,7 +1460,7 @@ Debug:
   NO_COLOR=1 lazyspeckit doctor --here
 
 Pin LazySpecKit downloads:
-  LAZYSPECKIT_REF=v0.8.1 lazyspeckit self-update
+  LAZYSPECKIT_REF=v0.8.2 lazyspeckit self-update
 EOF
 }
 

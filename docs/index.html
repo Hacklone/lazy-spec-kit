@@ -976,12 +976,12 @@
       <div class="timeline-step">
         <div class="step-label">Phase 1</div>
         <h3>Architecture Context <span class="badge-auto">automatic</span></h3>
-        <p>Loads 3 compact root files from <code>.docs/architecture/</code> — index, summary, principles. Agents then selectively load only relevant service/app/library docs. Scales to large monorepos. Skipped if not configured.</p>
+        <p>Loads 3 compact root files from <code>.docs/architecture/</code> — index, summary, principles. Agents then selectively load relevant component overviews and detail files (modules, API, UI). Scales to large monorepos. Skipped if not configured.</p>
       </div>
       <div class="timeline-step">
         <div class="step-label">Phase 2</div>
         <h3>Specify <span class="badge-auto">automatic</span></h3>
-        <p>Runs <code>/speckit.specify</code> with your spec text. Matches against architecture routing table to selectively load relevant service, app, and library docs.</p>
+        <p>Runs <code>/speckit.specify</code> with your spec text. Matches against architecture routing table to selectively load relevant component overviews and detail files.</p>
       </div>
       <div class="timeline-step">
         <div class="step-label">Phase 3</div>
@@ -1021,7 +1021,7 @@
       <div class="timeline-step">
         <div class="step-label">Phase 10</div>
         <h3>Architecture Update <span class="badge-auto">automatic</span></h3>
-        <p>Updates architecture docs to reflect new services, apps, libraries, and decisions. Keeps documentation evergreen without manual effort.</p>
+        <p>Updates architecture docs to reflect new components, integrations, and decisions. Keeps documentation evergreen without manual effort.</p>
       </div>
       <div class="timeline-step">
         <div class="step-label">Phase 11</div>
@@ -1378,11 +1378,11 @@ Severity guide:
     </div>
     <div class="cli-cmd">
       <h3>lazyspeckit architecture:check <span style="color:var(--text-dim)">[--here | &lt;path&gt;]</span></h3>
-      <p>Scans the project and reports architecture documentation status. Lists documented services, apps, libraries, integrations, and decisions. Suggests project directories that lack documentation. Runs automatically during <code>upgrade</code> and <code>doctor</code>.</p>
+      <p>Scans the project and reports architecture documentation status. Lists documented components, integrations, and decisions. Suggests project directories that lack documentation. Runs automatically during <code>upgrade</code> and <code>doctor</code>.</p>
     </div>
     <div class="cli-cmd">
       <h3>lazyspeckit architecture:show <span style="color:var(--text-dim)">[--here | &lt;path&gt;]</span></h3>
-      <p>Displays architecture doc status: core files, documented services, apps, libraries, integrations, and architecture decision records.</p>
+      <p>Displays architecture doc status: core files, documented components with doc counts, integrations, and architecture decision records.</p>
     </div>
   </div>
 </section>
@@ -1444,12 +1444,12 @@ Severity guide:
     <div class="code-block" style="margin-top: 1.5rem;">
       <div class="code-block-header">
         <span>Pin to a specific version</span>
-        <button class="copy-btn" data-copy="LAZYSPECKIT_REF=v0.8.1 lazyspeckit self-update" aria-label="Copy command">
+        <button class="copy-btn" data-copy="LAZYSPECKIT_REF=v0.8.2 lazyspeckit self-update" aria-label="Copy command">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
           Copy
         </button>
       </div>
-      <pre><span class="cmd">LAZYSPECKIT_REF</span>=<span class="string">v0.8.1</span> <span class="cmd">lazyspeckit self-update</span></pre>
+      <pre><span class="cmd">LAZYSPECKIT_REF</span>=<span class="string">v0.8.2</span> <span class="cmd">lazyspeckit self-update</span></pre>
     </div>
   </div>
 </section>
@@ -1561,13 +1561,13 @@ Severity guide:
       <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
         What is <code>.docs/architecture/</code> and do I need it?
       </div>
-      <div class="faq-a">It contains your project's architecture documentation — services, apps, libraries, principles, and integration patterns. Structured for selective loading so agents only read docs relevant to the current task. Created automatically during <code>lazyspeckit init</code>. Without it, LazySpecKit still works but treats each spec in isolation. With it, specs reuse existing services, respect service boundaries, and create reusable components. Use <code>--no-architecture</code> to skip it.</div>
+      <div class="faq-a">It contains your project's architecture documentation — components, principles, and integration patterns. Structured for selective loading so agents only read docs relevant to the current task. Created automatically during <code>lazyspeckit init</code>. Without it, LazySpecKit still works but treats each spec in isolation. With it, specs reuse existing components, respect boundaries, and avoid duplication. Use <code>--no-architecture</code> to skip it.</div>
     </div>
     <div class="faq-item">
       <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
         How do architecture docs stay up to date?
       </div>
-      <div class="faq-a">LazySpecKit automatically updates architecture docs at the end of every run (Architecture Update phase). New services, apps, libraries, and integration points are reflected in the docs. Architecture Decision Records (ADRs) are created for significant decisions. Running <code>lazyspeckit architecture:check</code> or <code>lazyspeckit upgrade</code> also checks for gaps.</div>
+      <div class="faq-a">LazySpecKit automatically updates architecture docs at the end of every run (Architecture Update phase). New components and integration points are reflected in the docs. Architecture Decision Records (ADRs) are created for significant decisions. Running <code>lazyspeckit architecture:check</code> or <code>lazyspeckit upgrade</code> also checks for gaps.</div>
     </div>
     <div class="faq-item">
       <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">

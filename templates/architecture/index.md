@@ -7,39 +7,54 @@
 > Keep keywords accurate and comprehensive. The more precise the keywords,
 > the better the architecture context matching.
 >
-> All component docs live under `components/` — services, apps, and libs are flat
-> files named `overview-<name>.md`. Additional per-component docs (API specs, data
-> models, etc.) use the pattern `<topic>-<name>.md` in the same directory.
+> Each component lives in its own folder under `components/` (e.g.,
+> `components/auth/` or `components/payments/payment-api/`).
+> Start with `overview.md` for high-level context. Load detail files
+> (`modules.md`, `api.md`, `ui.md`) only when the task requires deeper
+> understanding of that component's internals.
 
-## Services
+<!-- ═══ Organize sections below to match YOUR project ═══
 
-<!-- Backend microservices and API services.
+Sections are just headers — name them whatever makes sense:
+- By type:   Services | Apps | Libraries | Infrastructure | Scripts
+- By domain: Payments | Identity | Shared | Platform
+- By team:   Team Alpha | Team Beta | Platform
 
-| Name | Purpose | Keywords | Path |
-|------|---------|----------|------|
-| auth | Authentication & authorization | login, JWT, OAuth, permissions, session | components/services/overview-auth.md |
-| billing | Payment processing & subscriptions | payment, invoice, subscription, pricing | components/services/overview-billing.md |
-| notifications | Multi-channel notification delivery | email, push, SMS, alert, webhook | components/services/overview-notifications.md |
+Path patterns:
+- Flat:      components/<name>/overview.md
+- Grouped:   components/<domain>/<name>/overview.md
+
+Add a "Type" column to distinguish component kinds within a section.
 -->
 
-## Apps
+## Components
 
-<!-- Frontend applications, micro-frontends, and client apps.
+<!-- Replace this section with your own — organized by type, domain, or team.
 
-| Name | Purpose | Keywords | Path |
-|------|---------|----------|------|
-| dashboard | Admin web interface | admin, dashboard, settings, management | components/apps/overview-dashboard.md |
-| storefront | Customer-facing web app | shop, cart, checkout, product, catalog | components/apps/overview-storefront.md |
+| Name | Type | Purpose | Keywords | Path |
+|------|------|---------|----------|------|
+| auth | service | Authentication & authorization | login, JWT, OAuth, session | components/auth/overview.md |
+| billing | service | Payment processing & subscriptions | payment, invoice, subscription | components/billing/overview.md |
+| notifications | worker | Multi-channel notification delivery | email, push, SMS, webhook | components/notifications/overview.md |
+| dashboard | app | Admin web interface | admin, dashboard, settings | components/dashboard/overview.md |
+| mobile | app | iOS/Android client | mobile, app, push, offline | components/mobile/overview.md |
+| shared-utils | library | Common validation, formatting, helpers | validate, format, sanitize | components/shared-utils/overview.md |
 -->
 
-## Libraries
+<!-- === Example: domain-grouped monorepo ===
 
-<!-- Shared packages and reusable libraries.
+## Payments
+| Name | Type | Purpose | Keywords | Path |
+|------|------|---------|----------|------|
+| payment-api | service | Payment REST API | payment, charge, refund | components/payments/payment-api/overview.md |
+| payment-worker | worker | Async payment processing | settlement, webhook | components/payments/payment-worker/overview.md |
+| payment-dashboard | app | Payment admin UI | payment admin, refunds | components/payments/payment-dashboard/overview.md |
 
-| Name | Purpose | Keywords | Path |
-|------|---------|----------|------|
-| shared-utils | Common validation, formatting, helpers | validate, format, sanitize, helpers | components/libs/overview-shared-utils.md |
-| ui-components | Shared React component library | button, modal, form, table, component | components/libs/overview-ui-components.md |
+## Identity
+| Name | Type | Purpose | Keywords | Path |
+|------|------|---------|----------|------|
+| auth-service | service | Authentication | login, JWT, OAuth | components/identity/auth-service/overview.md |
+| admin-portal | app | Admin tools | admin, users, roles | components/identity/admin-portal/overview.md |
 -->
 
 ## Integrations

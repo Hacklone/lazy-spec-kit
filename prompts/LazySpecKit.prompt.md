@@ -313,16 +313,16 @@ Check for architecture documentation in `.docs/architecture/`.
    - `.docs/architecture/summary.md` — high-level system overview, architecture style, tech stack, cross-cutting concerns
    - `.docs/architecture/principles.md` — architecture rules enforced during planning and review
 
-   These three files are compact and ALWAYS loaded. Do NOT load service/app/lib docs at this stage — they are loaded selectively in Phase 2.
+   These three files are compact and ALWAYS loaded. Do NOT load component docs at this stage — they are loaded selectively in Phase 2.
 
-2. **Empty-docs check:** After reading `index.md`, check whether the routing table contains any real (non-example, non-commented-out) entries in the Services, Apps, or Libraries sections. If `index.md` has zero real entries — meaning the docs are just scaffolding from `architecture:init` and have not been populated — **fall through to Case B** and generate the full architecture docs from the codebase. Print:
+2. **Empty-docs check:** After reading `index.md`, check whether the routing table contains any real (non-example, non-commented-out) entries. If `index.md` has zero real entries — meaning the docs are just scaffolding from `architecture:init` and have not been populated — **fall through to Case B** and generate the full architecture docs from the codebase. Print:
    ```
    Architecture scaffolding found but no components documented — generating from codebase analysis...
    ```
 
 3. Store the loaded context internally. This context MUST be available to all subsequent phases.
 
-4. **Quick freshness check:** Compare the services, apps, and libraries listed in `index.md` against actual project directories. If significant discrepancies exist (e.g., project directories not reflected in docs, or documented entries that no longer exist), print a brief warning:
+4. **Quick freshness check:** Compare the components listed in `index.md` against actual project directories. If significant discrepancies exist (e.g., project directories not reflected in docs, or documented entries that no longer exist), print a brief warning:
    ```
    ⚠️ Architecture docs may be outdated — <N> undocumented directories found. Docs will be updated in Phase 9.
    ```
@@ -330,13 +330,13 @@ Check for architecture documentation in `.docs/architecture/`.
 
 5. Print a one-line confirmation:
    ```
-   Architecture context loaded — <S> services, <A> apps, <L> libraries indexed.
+   Architecture context loaded — <N> components indexed.
    ```
-   Where S, A, L are counts derived from `index.md` routing table.
+   Where N is the count of real entries in the `index.md` routing table.
 
 ## Case B: Architecture docs do not exist (`.docs/architecture/` missing or `summary.md` absent) — or empty scaffolding (Case A fallthrough)
 
-When architecture docs are missing or only contain empty scaffolding (no real service/app/lib entries), you MUST generate them from the codebase. This ensures every run benefits from architecture awareness — even on first use or after running `architecture:init` on an existing project.
+When architecture docs are missing or only contain empty scaffolding (no real component entries), you MUST generate them from the codebase. This ensures every run benefits from architecture awareness — even on first use or after running `architecture:init` on an existing project.
 
 1. Print: `Architecture docs not found — generating from codebase analysis...`
 
@@ -347,20 +347,25 @@ When architecture docs are missing or only contain empty scaffolding (no real se
    - Sample a few key source files to understand patterns, imports, and module boundaries.
 
 3. **Create (or overwrite scaffolding in) `.docs/architecture/` with populated content** (not just templates):
-   - `index.md` — Build the routing table: list each identified service, app, library, and integration with keywords and doc paths. Format as markdown tables with columns: Name, Purpose, Keywords, Path.
-   - `summary.md` — System purpose, architecture style, tech stack table, cross-cutting concerns. Keep it compact — do NOT list individual services (that's what index.md is for).
+   - `index.md` — Build the routing table: list each identified component and integration with keywords and doc paths. Organize sections by whatever fits the project (by type, domain, team, etc.). Format as markdown tables with columns: Name, Type, Purpose, Keywords, Path.
+   - `summary.md` — System purpose, architecture style, tech stack table, cross-cutting concerns. Keep it compact — do NOT list individual components (that's what index.md is for).
    - `principles.md` — Infer architecture principles from observed patterns (e.g., if the project uses a layered architecture, document that; if there are clear service boundaries, document those). Include reusability and single-source-of-truth rules.
-   - Create per-service docs: `.docs/architecture/components/services/overview-<name>.md` — purpose, ownership, tech stack, API surface, data model, dependencies.
-   - Create per-app docs: `.docs/architecture/components/apps/overview-<name>.md` — purpose, routes, service dependencies.
-   - Create per-library docs: `.docs/architecture/components/libs/overview-<name>.md` — purpose, public API, consumers, constraints.
+   - Create per-component docs under `.docs/architecture/components/`. Place each component in its own folder:
+     - Flat repos: `components/<name>/overview.md`
+     - Monorepos organized by domain: `components/<domain>/<name>/overview.md`
+   - Each `overview.md` covers: purpose, ownership, tech stack, interfaces, dependencies.
+   - Add optional detail files based on the component's nature:
+     - `modules.md` — for components with significant internal structure
+     - `api.md` — for components that expose interfaces (REST, gRPC, CLI, events, etc.)
+     - `ui.md` — for components with user-facing surfaces (pages, screens, commands)
    - Create `integrations/`, `decisions/` directories if they don't exist.
-   - Remove `overview-example.md` scaffolding files from `components/services/`, `components/apps/`, `components/libs/` — they are no longer needed once real docs are generated.
+   - Remove the `components/example/` scaffolding directory — it is no longer needed once real docs are generated.
 
 4. Store the generated context internally for all subsequent phases.
 
 5. Print:
    ```
-   Architecture docs generated from codebase — <S> services, <A> apps, <L> libraries documented.
+   Architecture docs generated from codebase — <N> components documented.
    ```
 
 ---
@@ -379,8 +384,8 @@ Wait for successful completion before proceeding.
 
 If architecture context was loaded (or generated) in Phase 1:
 
-1. Match the spec against the `index.md` routing table to identify relevant services, apps, libraries, and integrations by keyword match.
-2. Read ONLY the docs for matched entries (from `.docs/architecture/components/services/overview-<name>.md`, `.docs/architecture/components/apps/overview-<name>.md`, `.docs/architecture/components/libs/overview-<name>.md`, `.docs/architecture/integrations/<name>.md`). Do NOT load unrelated docs — selective loading keeps context focused.
+1. Match the spec against the `index.md` routing table to identify relevant components and integrations by keyword match.
+2. Read ONLY the docs for matched entries (follow the paths in the routing table to each component's `overview.md` and any `integrations/<name>.md`). Load detail files (`modules.md`, `api.md`, `ui.md`) only when the task requires deeper understanding of a component's internals. Do NOT load unrelated docs — selective loading keeps context focused.
 3. Cross-reference `principles.md` for reusability rules — check if the spec should leverage existing libraries instead of building new logic.
 4. Carry this focused architecture context forward into all subsequent phases.
 
@@ -477,9 +482,9 @@ If the user invoked `/LazySpecKit --auto-clarify <spec text>`:
 
 If architecture context is available:
 - Use architecture principles and existing patterns to inform Recommendation choices.
-- If the spec implies creating logic that already exists in a library (per `index.md` libs entries), recommend reusing it.
-- If the spec implies a new service that overlaps with an existing one (per `index.md` services entries), flag this as a clarification point.
-- If the spec crosses service boundaries, flag this as a clarification point.
+- If the spec implies creating logic that already exists in a component (per `index.md` entries), recommend reusing it.
+- If the spec implies a new component that overlaps with an existing one, flag this as a clarification point.
+- If the spec crosses component boundaries, flag this as a clarification point.
 
 Proceed once clarification is resolved (manual or auto).
 
@@ -807,22 +812,18 @@ After implementation and review are complete, update the architecture documentat
 1. **Scan implemented changes:** Review all files created or modified during implementation.
 
 2. **Update existing docs:**
-   - If new endpoints, events, or capabilities were added to an existing service, update its `components/services/overview-<name>.md`.
-   - If new routes or service dependencies were added to an app, update its `components/apps/overview-<name>.md`.
-   - If a library's API changed, update its `components/libs/overview-<name>.md`.
+   - If new interfaces, events, or capabilities were added to an existing component, update its `overview.md` (and `api.md`, `modules.md`, `ui.md` if they exist).
    - Update `index.md` routing table keywords to cover new/changed areas.
 
 3. **Create new docs if needed:**
-   - New service → `.docs/architecture/components/services/overview-<service-name>.md`
-   - New app → `.docs/architecture/components/apps/overview-<app-name>.md`
-   - New library → `.docs/architecture/components/libs/overview-<lib-name>.md`
+   - New component → `.docs/architecture/components/<name>/overview.md` (or `components/<domain>/<name>/overview.md` for monorepos). Add detail files based on the component's nature: `modules.md` for internal structure, `api.md` for interfaces, `ui.md` for user-facing surfaces.
    - New integration → `.docs/architecture/integrations/<integration-name>.md`
    - Add entries to `index.md` routing table for any new docs.
 
 4. **Architecture Decision Records:**
    If an architecture-significant decision was made (new pattern, technology choice, structural change), create an ADR in `.docs/architecture/decisions/` following the ADR template.
 
-5. **Verify consistency:** Ensure `index.md` keywords cover all services, apps, libraries, and integrations. Ensure `summary.md` cross-cutting concerns are still accurate. Ensure `principles.md` rules haven't been violated.
+5. **Verify consistency:** Ensure `index.md` keywords cover all components and integrations. Ensure `summary.md` cross-cutting concerns are still accurate. Ensure `principles.md` rules haven't been violated.
 
 Print a one-line summary:
 ```

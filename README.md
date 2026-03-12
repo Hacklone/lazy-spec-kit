@@ -208,13 +208,13 @@ With architecture context, LazySpecKit ensures new specs **reuse existing librar
 
 ### Designed for scale
 
-Architecture docs are structured for **selective loading**. Only 3 small root files are always loaded — agents then use the routing table to load only the service/app/library docs relevant to the current task. This keeps context focused even in monorepos with dozens of microservices and micro-frontends.
+Architecture docs are structured for **selective loading**. Only 3 small root files are always loaded — agents then use the routing table to load only the component docs relevant to the current task. This keeps context focused even in huge monorepos with dozens of components. Components can be organized flat or grouped by domain — the structure adapts to your project.
 
 ### How it works
 
 1. **`lazyspeckit init`** creates `.docs/architecture/` with templates and examples
 2. **Phase 1 (Architecture Context)** loads 3 compact root files (`index.md`, `summary.md`, `principles.md`) — or **auto-generates them from codebase analysis** if none exist
-3. **Phase 2 (Selective Loading)** matches spec keywords against the `index.md` routing table and loads only relevant service/app/library docs
+3. **Phase 2 (Selective Loading)** matches spec keywords against the `index.md` routing table and loads only relevant component docs
 4. **Plan & Quality Gates** validate alignment with architecture principles
 5. **Review & Refine** — the architecture reviewer checks for violations against loaded context
 6. **Phase 9 (Architecture Update)** updates the docs to reflect what was built — keeping them evergreen
@@ -226,16 +226,23 @@ Architecture docs are structured for **selective loading**. Only 3 small root fi
 ├── index.md              # Context router — keyword-to-path routing table (always loaded)
 ├── summary.md            # System overview — compact, constant-size (always loaded)
 ├── principles.md         # Architecture rules enforced during planning (always loaded)
-├── components/           # All project components — services, apps, libraries
-│   ├── services/         # Backend services / microservices
-│   │   ├── overview-example.md   # Template — replace with your services
-│   │   └── overview-auth.md
-│   ├── apps/             # Frontend apps / micro-frontends
-│   │   ├── overview-example.md   # Template — replace with your apps
-│   │   └── overview-dashboard.md
-│   └── libs/             # Shared libraries and packages
-│       ├── overview-example.md   # Template — replace with your libraries
-│       └── overview-shared-utils.md
+├── components/           # All project components — organized however suits your project
+│   ├── example/          # Template — replace with your own components
+│   │   ├── overview.md
+│   │   ├── modules.md
+│   │   ├── api.md
+│   │   └── ui.md
+│   ├── auth/             # Flat component (small repos)
+│   │   ├── overview.md
+│   │   ├── modules.md
+│   │   └── api.md
+│   └── payments/         # Domain group (monorepos)
+│       ├── payment-api/
+│       │   ├── overview.md
+│       │   └── api.md
+│       └── payment-ui/
+│           ├── overview.md
+│           └── ui.md
 ├── integrations/         # External system integrations
 │   └── stripe.md
 └── decisions/            # Architecture Decision Records (ADRs)
@@ -246,12 +253,13 @@ Architecture docs are structured for **selective loading**. Only 3 small root fi
 
 | File | Purpose | When it's loaded |
 |------|---------|-----------------|
-| `index.md` | Routing table — maps keywords to doc paths for each service, app, library | Always — agent scans for relevant entries |
+| `index.md` | Routing table — maps keywords to doc paths for each component | Always — agent scans for relevant entries |
 | `summary.md` | System purpose, architecture style, tech stack, cross-cutting concerns | Always — compact system-level overview |
 | `principles.md` | Architecture rules — service boundaries, dependency direction, reusability | Always — enforced during planning and review |
-| `components/services/overview-<name>.md` | Self-contained service doc — purpose, API, data, dependencies | Selectively — only when spec matches keywords |
-| `components/apps/overview-<name>.md` | Self-contained app doc — purpose, routes, service dependencies | Selectively — only when spec matches keywords |
-| `components/libs/overview-<name>.md` | Self-contained library doc — purpose, public API, consumers | Selectively — only when spec matches keywords |
+| `components/<name>/overview.md` | Component entry point — purpose, interfaces, data, dependencies | Selectively — only when spec matches keywords |
+| `components/<name>/modules.md` | Internal module breakdown — boundaries, responsibilities, key paths | On demand — when task touches component internals |
+| `components/<name>/api.md` | Detailed interfaces — REST, gRPC, CLI, events, schemas | On demand — when task involves interface changes |
+| `components/<name>/ui.md` | Screens, pages, or commands — user-facing entry point breakdown | On demand — when task touches specific screens/commands |
 
 ### Setup
 
@@ -709,10 +717,10 @@ lazyspeckit architecture:show --here
 
 ```bash
 # Install a specific version
-LAZYSPECKIT_REF=v0.8.1 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/v0.8.1/install.sh)"
+LAZYSPECKIT_REF=v0.8.2 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/v0.8.2/install.sh)"
 
 # Self-update to a specific version
-LAZYSPECKIT_REF=v0.8.1 lazyspeckit self-update
+LAZYSPECKIT_REF=v0.8.2 lazyspeckit self-update
 ```
 
 ---
