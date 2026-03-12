@@ -12,17 +12,10 @@ User runs:
 /LazySpecKit [options] <spec text>
 
 Supported options (optional):
-- --review=off              (disable post-implementation review/refine loop)
-- --review=on               (explicitly enable; default)
-- --auto-clarify            (auto-select recommendations for clarification questions; may still ask for Low-confidence items)
-- --max-review-loops=N      (set maximum review/refine iterations; default: 6)
-- --no-architecture          (skip architecture context loading and update phases)
-
-Defaults:
-- --review=on
-- --auto-clarify=off
-- --max-review-loops=6
-- --no-architecture=off
+- --review=off|on           (disable/enable post-implementation review loop; default: on)
+- --auto-clarify            (auto-select recommendations; may still ask for Low-confidence items; default: off)
+- --max-review-loops=N      (max review/refine iterations; default: 6)
+- --no-architecture         (skip architecture context loading and update phases; default: off)
 
 Parsing rules:
 - Options, if present, MUST appear before the <spec text>.
@@ -52,8 +45,7 @@ You MUST NOT:
 - Claim tests/lint/build passed unless they were executed and returned successful exit codes.
 - Skip mandatory SpecKit commands.
 - Execute any SpecKit command inline without first reading the SpecKit prompt file for that command. Always follow the invocation priority described in "How SpecKit Commands Work".
-- Print, request, or store secrets (API keys, tokens, passwords).
-- Embed sensitive data (tokens, API keys, secrets, passwords, private keys, credentials, connection strings, certificates) in ANY generated file — specs, constitution, architecture docs, ADRs, reviewers, agents, task lists, audit logs, or any other artifact. If sensitive values are encountered in the codebase during analysis, reference them generically (e.g., "uses an API key from environment variable") — NEVER copy actual values.
+- Print, request, store, or embed secrets or sensitive data (API keys, tokens, passwords, private keys, credentials, connection strings, certificates) in any output or generated file. If sensitive values are encountered during analysis, reference them generically (e.g., "uses an API key from environment variable") — NEVER copy actual values.
 - Guess or fabricate validation commands.
 
 You MUST:
@@ -81,15 +73,9 @@ Before executing ANY phase and before reading, modifying, or creating files:
 - If multiple policies apply, the closest (most specific) `agents.md` takes precedence.
 
 3) Enforcement:
-- Follow applicable `agents.md` rules across ALL phases:
-  - clarify
-  - plan
-  - tasks
-  - analyze fixes
-  - implement
-  - review/refine (if enabled)
+- Follow applicable `agents.md` rules across ALL phases (clarify through review/refine).
 - Do not ignore governance rules even if inconvenient.
-- If an `agents.md` rule conflicts with the specification or generated tasks in a way that prevents safe execution, stop and escalate using the BLOCKED format.
+- If an `agents.md` rule conflicts with the spec or tasks in a way that prevents safe execution, escalate using the BLOCKED format.
 
 4) Output discipline:
 - Do NOT print the full contents of `agents.md`.
@@ -107,13 +93,11 @@ SpecKit commands (`/speckit.specify`, `/speckit.clarify`, `/speckit.plan`, `/spe
 - `.github/agents/speckit.<command>.agent.md` (VS Code Copilot agents)
 - `.claude/commands/speckit.<command>.md` (Claude Code commands)
 
-**Invocation priority** — for each SpecKit command, try these methods in order:
+**Invocation priority** — for each command, try in order:
 
-1. **Slash command / tool call** — If the command is available as an invokable slash command or tool call in the current environment, invoke it directly (e.g., `/speckit.specify`). This is the preferred method.
-2. **Read prompt file and follow its instructions** — If the command is NOT available as a tool call, locate and read the corresponding SpecKit prompt file (check `.github/prompts/`, `.github/agents/`, or `.claude/commands/`), then follow its instructions to execute the phase. This is the fallback method.
-3. **Blocker** — If neither method works (no tool call available AND no prompt file found on disk), treat as a blocker. Follow the Failure Escalation Protocol. Inform the user that SpecKit must be installed first (e.g., `lazyspeckit init`).
-
-When using fallback method (2), you MUST faithfully follow the SpecKit prompt file's instructions — do NOT simplify, skip steps, or substitute your own logic. Treat the prompt file content as authoritative.
+1. **Slash command / tool call** — Invoke directly if available (e.g., `/speckit.specify`).
+2. **Read prompt file** — If no tool call, locate and read the SpecKit prompt file (`.github/prompts/`, `.github/agents/`, or `.claude/commands/`) and follow its instructions faithfully. Do NOT simplify, skip steps, or substitute your own logic.
+3. **Blocker** — If neither works, escalate via Failure Escalation Protocol. Inform user SpecKit must be installed (`lazyspeckit init`).
 
 ## Mandatory SpecKit Phases (Never Skip)
 
@@ -146,20 +130,9 @@ Run only if reliably detected (see Validation Detection rules).
 
 ---
 
-# Phase Authority Rule
-
-A phase is considered complete only when:
-- Its required command has executed successfully.
-- It returned a successful result (no errors).
-- All required validation for that phase is green.
-
-Do NOT begin the next phase until the current one is complete.
-
-Do NOT re-enter a completed phase unless required by the Failure Escalation Protocol.
-
----
-
 # Deterministic Execution (Forward-Only)
+
+A phase is complete only when its command succeeded, returned no errors, and all validation is green. Do NOT begin the next phase until the current one is complete. Do NOT re-enter a completed phase unless required by the Failure Escalation Protocol.
 
 After Planning begins:
 - The specification is frozen.
@@ -216,13 +189,6 @@ What happens next:
 
 ---
 
-Do NOT:
-- Continue in a partially broken state.
-- Ignore failing validation.
-- Over-explain.
-
----
-
 # Live Phase Progress
 
 At the START of every phase, print a single-line progress indicator:
@@ -243,11 +209,7 @@ Phase numbers:
 - Phase 8: Review & Refine (if enabled)
 - Phase 9: Architecture Update (if architecture enabled)
 
-Use M = total phases that will execute in this run. Calculate M as follows:
-- Start with 9 (Architecture Context, Specify, Clarify, Plan, Tasks, Spec Quality Gates, Implement, Review & Refine, Architecture Update).
-- Add 1 if Constitution phase runs (no existing constitution found).
-- Subtract 1 if `--review=off` (Phase 8 skipped).
-- Subtract 2 if `--no-architecture` (Phases 1 and 9 skipped).
+M = total phases that will execute: start with 9, +1 if constitution needed, −1 if `--review=off`, −2 if `--no-architecture`.
 
 This indicator MUST appear before any other output for that phase. Keep it to exactly one line.
 
@@ -287,17 +249,7 @@ Example:
 
 ---
 
-Wait for the user to respond.
-
-Once the user provides constitution text, run:
-
-/speckit.constitution
-
-Pass the user-provided text as the constitution content. The text the user pasted IS the constitution — feed it directly into the command.
-
-Handle follow-up questions from `/speckit.constitution` if needed.
-
-Proceed once the constitution is successfully created.
+Wait for the user to respond. Once provided, run `/speckit.constitution` with the user's text as the constitution content. Handle follow-up questions if needed. Proceed once created.
 
 ---
 
@@ -309,14 +261,12 @@ Check for architecture documentation in `.docs/architecture/`.
 
 ## Case A: Architecture docs exist (`.docs/architecture/summary.md` is present)
 
-1. Read these core architecture files (in order):
-   - `.docs/architecture/index.md` — context router with keyword-to-path routing table
-   - `.docs/architecture/summary.md` — high-level system overview, architecture style, tech stack, cross-cutting concerns
-   - `.docs/architecture/principles.md` — architecture rules enforced during planning and review
+1. Read core architecture files (always loaded; do NOT load component docs yet):
+   - `index.md` — keyword-to-path routing table
+   - `summary.md` — system overview, architecture style, tech stack, cross-cutting concerns
+   - `principles.md` — architecture rules for planning and review
 
-   These three files are compact and ALWAYS loaded. Do NOT load component docs at this stage — they are loaded selectively in Phase 2.
-
-2. **Empty-docs check:** After reading `index.md`, check whether the routing table contains any real (non-example, non-commented-out) entries. If `index.md` has zero real entries — meaning the docs are just scaffolding from `architecture:init` and have not been populated — **fall through to Case B** and generate the full architecture docs from the codebase. Print:
+2. **Empty-docs check:** If `index.md` has zero real entries (only scaffolding/commented-out), fall through to Case B. Print:
    ```
    Architecture scaffolding found but no components documented — generating from codebase analysis...
    ```
@@ -335,22 +285,18 @@ Check for architecture documentation in `.docs/architecture/`.
    ```
    Where N is the count of real entries in the `index.md` routing table.
 
-## Case B: Architecture docs do not exist (`.docs/architecture/` missing or `summary.md` absent) — or empty scaffolding (Case A fallthrough)
+## Case B: Architecture docs missing or empty scaffolding
 
-When architecture docs are missing or only contain empty scaffolding (no real component entries), you MUST generate them from the codebase. This ensures every run benefits from architecture awareness — even on first use or after running `architecture:init` on an existing project.
+When architecture docs are missing or only contain empty scaffolding, generate them from the codebase.
 
 1. Print: `Architecture docs not found — generating from codebase analysis...`
 
-2. **Scan the project** to understand its structure:
-   - Read the project's directory tree (top-level and one level deep).
-   - Read key configuration files: `package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `*.sln`, `pom.xml`, `build.gradle`, `docker-compose.yml`, `Makefile`, or equivalent.
-   - Read the constitution (if available) for tech stack and conventions.
-   - Sample a few key source files to understand patterns, imports, and module boundaries.
+2. **Scan the project:** Read directory tree (top-level + one deep), key config files (`package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`, etc.), the constitution, and sample key source files to understand patterns and module boundaries.
 
 3. **Create (or overwrite scaffolding in) `.docs/architecture/` with populated content** (not just templates):
-   - `index.md` — Build the routing table: list each identified component and integration with keywords and doc paths. Organize sections by whatever fits the project (by type, domain, team, etc.). Format as markdown tables with columns: Name, Type, Purpose, Keywords, Path.
-   - `summary.md` — System purpose, architecture style, tech stack table, cross-cutting concerns. Keep it compact — do NOT list individual components (that's what index.md is for).
-   - `principles.md` — Infer architecture principles from observed patterns (e.g., if the project uses a layered architecture, document that; if there are clear service boundaries, document those). Include reusability and single-source-of-truth rules.
+   - `index.md` — Routing table: each component/integration with Name, Type, Purpose, Keywords, Path columns. Organize by type, domain, team, or whatever fits.
+   - `summary.md` — System purpose, architecture style, tech stack, cross-cutting concerns. Compact — no individual components.
+   - `principles.md` — Infer principles from observed patterns (layered arch, service boundaries, etc.). Include reusability and single-source-of-truth rules.
    - Create per-component docs under `.docs/architecture/components/`. Place each component in its own folder:
      - Flat repos: `components/<name>/overview.md`
      - Monorepos organized by domain: `components/<domain>/<name>/overview.md`
@@ -362,7 +308,7 @@ When architecture docs are missing or only contain empty scaffolding (no real co
    - Create `integrations/`, `decisions/` directories if they don't exist.
    - Remove the `components/example/` scaffolding directory — it is no longer needed once real docs are generated.
 
-   **Sensitive-data guard:** Before writing any generated architecture doc, verify it contains no secrets, tokens, API keys, passwords, private keys, connection strings, or credentials copied from the codebase. Reference secrets generically (e.g., "authenticates via `DATABASE_URL` env var") — never include actual values.
+   **Sensitive-data guard:** Never embed actual secrets or credentials in generated docs — reference generically (e.g., "authenticates via `DATABASE_URL` env var").
 
 4. Store the generated context internally for all subsequent phases.
 
@@ -400,28 +346,15 @@ Run:
 
 /speckit.clarify
 
-## Clarify UX Contract (Deterministic, Bounded, Recommendation-Driven)
+## Clarify UX Contract
 
-Goal:
-- Exactly ONE user reply (unless --auto-clarify resolves fully).
-- Structured A/B/C/D answers.
-- Mandatory Recommendation + Confidence for every question.
-- Token-bounded output (Copilot-efficient).
-- No question-by-question interaction.
+### 1) Batching & Brevity
 
-### 1) Batching Rule
+- Present ALL questions from `/speckit.clarify` in a single message. Only decision-critical ambiguities.
+- Each question: 1–3 sentences max. Each recommendation: 1–2 sentences max. No long rationales.
+- Do NOT limit the number of questions to fit a token budget.
 
-- Present ALL clarification questions in a single message.
-- Only ask decision-critical ambiguities.
-
-### 2) Token Safeguard
-
-- Each question must be 1–3 sentences max.
-- Each recommendation must be 1–2 sentences max.
-- No long rationales or examples.
-- Do NOT limit the number of questions to fit a token budget. Present ALL questions produced by `/speckit.clarify`.
-
-### 3) Required Formatting
+### 2) Required Formatting
 
 You MUST normalize questions into this exact structure:
 
@@ -445,7 +378,7 @@ Rules:
   - Medium → Trade-offs exist
   - Low → Significant ambiguity
 
-### 4) Option Normalization
+### 3) Option Normalization
 
 If SpecKit does not provide explicit options:
 - Synthesize sensible A/B/C options that reflect common defaults and repo conventions (and `agents.md` where applicable).
@@ -456,7 +389,7 @@ If SpecKit does not provide explicit options:
   C) I’m unsure
   D) Other: <free text>
 
-### 5) Answer Contract (Manual Mode)
+### 4) Answer Contract (Manual Mode)
 
 After listing questions, instruct the user to reply in exactly this format:
 
@@ -469,7 +402,7 @@ Rules:
 - If any answers are missing, ask ONLY for the missing numbers (do not repeat answered questions).
 - Treat any extra requirements in answers as authoritative additions.
 
-### 6) Auto Clarify Mode
+### 5) Auto Clarify Mode
 
 If the user invoked `/LazySpecKit --auto-clarify <spec text>`:
 
@@ -481,7 +414,7 @@ If the user invoked `/LazySpecKit --auto-clarify <spec text>`:
 - Print a short summary of the chosen answers (one line).
 - Proceed immediately once Low-confidence items (if any) are resolved.
 
-### 7) Architecture-Informed Clarification
+### 6) Architecture-Informed Clarification
 
 If architecture context is available:
 - Use architecture principles and existing patterns to inform Recommendation choices.
@@ -527,17 +460,7 @@ Planning and implementation will now proceed automatically.
 
 # ⛔ No User Interaction Zone (Phases 4–9)
 
-From this point forward until the Final Completion Summary, you are in a **fully automated zone**.
-
-- You MUST NOT ask the user any questions.
-- You MUST NOT present choices or options to the user.
-- You MUST NOT pause for confirmation, approval, or feedback.
-- If ANY SpecKit command (`/speckit.plan`, `/speckit.tasks`, `/speckit.checklist`, `/speckit.analyze`, `/speckit.implement`) asks questions or requests input, you MUST auto-answer them yourself using the approved spec, clarification answers, constitution, `agents.md`, and loaded architecture context.
-- The ONLY exception is a fundamental blocker that makes it impossible to continue — in that case, use the BLOCKED escalation format.
-
-This rule applies to ALL remaining phases: Plan, Tasks, Spec Quality Gates, Implement, Validate, Review & Refine, and Architecture Update.
-
----
+From this point forward: **fully automated**. No questions, no choices, no pauses. Auto-answer any SpecKit command input using the approved spec, clarification answers, constitution, `agents.md`, and architecture context. The ONLY exception is a fundamental blocker → use BLOCKED format.
 
 Continue immediately.
 
@@ -621,18 +544,9 @@ After spec quality gates pass and BEFORE implementation begins:
 4) Do NOT create `agents.md` files deeper than 1 level below root.
 
 5) Content rules for generated `agents.md` files:
-   - Derive rules from the constitution, existing codebase conventions, and the approved plan/tasks.
-   - Keep it concise and actionable (bullets, not essays).
-   - Include only rules that are meaningful for the codebase:
-     - Language and framework versions
-     - File/folder structure conventions
-     - Naming conventions (files, variables, functions, components)
-     - Testing patterns and requirements
-     - Import/export style
-     - Error handling patterns
-     - Any domain-specific constraints from the constitution
-   - Root `agents.md`: broad project-wide rules.
-   - Scoped `agents.md` (e.g., `server/agents.md`): rules specific to that area (e.g., API patterns, ORM usage, component conventions).
+   - Derive from constitution, codebase conventions, and the approved plan/tasks. Keep concise (bullets).
+   - Cover: language/framework versions, file structure, naming conventions, testing patterns, import/export style, error handling, domain constraints.
+   - Root `agents.md`: broad project-wide rules. Scoped (e.g., `server/agents.md`): area-specific rules.
 
 6) If `agents.md` files already exist, do NOT modify them.
 
@@ -661,31 +575,11 @@ After implementation, run applicable validation and iterate until green or block
 
 Validation is applicable ONLY if reliably detected.
 
-Detect commands from:
-- README / CONTRIBUTING
-- Node → `package.json`
-- Python → `pyproject.toml`
-- Go → `go.mod`
-- Rust → `Cargo.toml`
-- .NET → `*.sln`, `*.csproj`
-- Java → `pom.xml`, `build.gradle`
+Detect commands from README/CONTRIBUTING or ecosystem config (`package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `*.sln`/`*.csproj`, `pom.xml`/`build.gradle`). Do NOT guess or fabricate commands. If no validation found for a category, skip it.
 
-Rules:
-- Prefer documented commands.
-- Do NOT guess commands.
-- Do NOT fabricate commands.
-- If no validation found for a category, explicitly state it is skipped.
+Run in order: lint → typecheck → tests → build. Success = command executed + exit code 0.
 
-Run in order:
-lint → typecheck → tests → build
-
-A step is successful ONLY if:
-- Command executed
-- Exit code was successful
-
-If repeated environment/tool failures occur:
-- Retry 3 times
-- Escalate using the BLOCKED format
+Failures: retry 3×, then escalate via BLOCKED format.
 
 ---
 
@@ -729,47 +623,13 @@ perspective: <1-line perspective description>
 
 **Body:** Freeform Markdown with review instructions, rules, and focus areas. The body is injected as the reviewer's system prompt when it is spawned.
 
-### Example: Adding a Custom Reviewer
-
-File: `.lazyspeckit/reviewers/accessibility.md`
-
-```markdown
----
-name: Accessibility Reviewer
-perspective: WCAG compliance and inclusive UX
----
-
-Focus on:
-- Semantic HTML and ARIA attributes
-- Keyboard navigation and focus management
-- Color contrast ratios (WCAG AA minimum)
-- Screen reader compatibility
-- Alt text for images and media
-
-Severity guide:
-- Critical: interactive element unreachable by keyboard
-- High: missing ARIA labels on form controls
-- Medium: insufficient color contrast
-- Low: missing skip-navigation link
-```
-
 ## Review Setup
 
-1. Read all `.md` files from `.lazyspeckit/reviewers/`.
-2. Parse frontmatter (`name`, `perspective`) and body from each file.
-3. Spawn ALL reviewers as independent agents with fresh context.
-   - Reviewers are independent and have no dependencies on each other.
-   - If the environment supports parallel sub-agents (e.g., Claude Code), launch all simultaneously and collect findings once all complete.
-   - If parallel sub-agents are not available (e.g., VS Code Copilot), run reviewers sequentially in any order and accumulate findings.
-   - When spawning each reviewer, prepend this instruction before the skill file content:
-     **You are a REVIEWER, not a coder.** You MUST NOT write or generate code. You MUST NOT ask the user any questions. Your role is strictly to review code, plans, tasks, and architecture — then report findings. If something is ambiguous, make a reasonable judgment call based on the spec, constitution, and codebase conventions — do not ask for clarification.
+1. Read all `.md` files from `.lazyspeckit/reviewers/`. Parse frontmatter (`name`, `perspective`) and body.
+2. Spawn ALL reviewers as independent agents with fresh context. Run in parallel if supported (Claude Code), otherwise sequentially (VS Code Copilot).
+3. Prepend to each reviewer: **You are a REVIEWER, not a coder.** You MUST NOT write or generate code. You MUST NOT ask questions. Review and report findings only. Make reasonable judgment calls — do not ask for clarification.
 
-Each reviewer MUST:
-- Read and obey applicable scoped `agents.md` files for the areas they evaluate.
-- Review ONLY within the scope of the implemented changes and the approved spec/tasks.
-- Follow the instructions from its skill file.
-- Produce findings categorized as: Critical / High / Medium / Low
-- Provide concrete, actionable items.
+Each reviewer MUST obey applicable `agents.md`, review ONLY the implemented changes, follow its skill file instructions, and produce findings categorized as Critical / High / Medium / Low.
 
 ## Fix policy (bounded, deterministic)
 - You MUST fix ALL Critical and High findings.
@@ -826,7 +686,7 @@ After implementation and review are complete, update the architecture documentat
 4. **Architecture Decision Records:**
    If an architecture-significant decision was made (new pattern, technology choice, structural change), create an ADR in `.docs/architecture/decisions/` following the ADR template.
 
-5. **Sensitive-data guard:** Before writing any architecture doc, verify it contains no secrets, tokens, API keys, passwords, private keys, connection strings, or credentials. Reference secrets generically (e.g., "authenticates via `API_KEY` env var") — never include actual values.
+5. **Sensitive-data guard:** Never embed actual secrets or credentials — reference generically (e.g., "`API_KEY` env var").
 
 6. **Verify consistency:** Ensure `index.md` keywords cover all components and integrations. Ensure `summary.md` cross-cutting concerns are still accurate. Ensure `principles.md` rules haven't been violated.
 
@@ -912,13 +772,10 @@ Where `<timestamp>` is ISO 8601 format: `YYYY-MM-DDTHH-MM-SS` (use hyphens inste
 ```
 
 Rules:
-- Populate each field based on actual execution data. Use `null` for fields that don't apply.
-- The `status` of each phase reflects what actually happened (not what was planned).
-- The `reviewers` array lists the base filename (without `.md`) of every reviewer that ran.
-- If the run ends with BLOCKED, set `outcome` to `"blocked"` and populate `blocker` with the blocker description.
-- Create the `.lazyspeckit/runs/` directory if it doesn't exist.
-- Do NOT log secrets, file contents, or user input — only metadata.
-- Do NOT embed tokens, API keys, passwords, private keys, connection strings, or any credential in any generated artifact. If you encounter sensitive values during analysis, reference them generically (e.g., "API key from env var").
+- Populate from actual execution data. Use `null` for non-applicable fields.
+- `status` reflects what actually happened. `reviewers` lists base filenames (without `.md`).
+- On BLOCKED: set `outcome` to `"blocked"` and populate `blocker`.
+- Create `.lazyspeckit/runs/` if needed. Log metadata only — no secrets, file contents, or user input.
 
 ---
 
