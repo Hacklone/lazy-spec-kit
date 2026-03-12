@@ -14,11 +14,11 @@ set -Eeuo pipefail
 #   lazyspeckit architecture:show  [--here | <path>]
 #
 # Env:
-#   LAZYSPECKIT_REF=main|v0.8.2|<sha>   pin LazySpecKit downloads (default: main)
+#   LAZYSPECKIT_REF=main|v0.8.3|<sha>   pin LazySpecKit downloads (default: main)
 #   DEBUG=1                             bash trace
 #   NO_COLOR=1                          disable colors
 
-VERSION="0.8.2"
+VERSION="0.8.3"
 
 OWNER_REPO="Hacklone/lazy-spec-kit"
 REF="${LAZYSPECKIT_REF:-main}"
@@ -1325,9 +1325,11 @@ cmd_self_update() {
   info "Updating lazyspeckit CLI (ref: $REF)..."
   fetch "$url" "$tmp"
   grep -q "lazyspeckit" "$tmp" || die "Downloaded CLI does not look valid."
+  local new_version
+  new_version="$(grep -m1 '^VERSION=' "$tmp" | cut -d'"' -f2 || true)"
   chmod +x "$tmp" || true
   mv "$tmp" "$self"
-  ok "LazySpecKit CLI updated"
+  ok "LazySpecKit CLI updated${new_version:+ → v$new_version}"
 
   upgrade_speckit_cli
 
@@ -1460,7 +1462,7 @@ Debug:
   NO_COLOR=1 lazyspeckit doctor --here
 
 Pin LazySpecKit downloads:
-  LAZYSPECKIT_REF=v0.8.2 lazyspeckit self-update
+  LAZYSPECKIT_REF=v0.8.3 lazyspeckit self-update
 EOF
 }
 
