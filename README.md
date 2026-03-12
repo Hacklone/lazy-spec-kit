@@ -226,21 +226,16 @@ Architecture docs are structured for **selective loading**. Only 3 small root fi
 ├── index.md              # Context router — keyword-to-path routing table (always loaded)
 ├── summary.md            # System overview — compact, constant-size (always loaded)
 ├── principles.md         # Architecture rules enforced during planning (always loaded)
-├── services/             # Backend services / microservices
-│   ├── example/          # Template — replace with your services
-│   │   └── README.md
-│   └── auth/
-│       └── README.md
-├── apps/                 # Frontend apps / micro-frontends
-│   ├── example/          # Template — replace with your apps
-│   │   └── README.md
-│   └── dashboard/
-│       └── README.md
-├── libs/                 # Shared libraries and packages
-│   ├── example/          # Template — replace with your libraries
-│   │   └── README.md
-│   └── shared-utils/
-│       └── README.md
+├── components/           # All project components — services, apps, libraries
+│   ├── services/         # Backend services / microservices
+│   │   ├── overview-example.md   # Template — replace with your services
+│   │   └── overview-auth.md
+│   ├── apps/             # Frontend apps / micro-frontends
+│   │   ├── overview-example.md   # Template — replace with your apps
+│   │   └── overview-dashboard.md
+│   └── libs/             # Shared libraries and packages
+│       ├── overview-example.md   # Template — replace with your libraries
+│       └── overview-shared-utils.md
 ├── integrations/         # External system integrations
 │   └── stripe.md
 └── decisions/            # Architecture Decision Records (ADRs)
@@ -254,9 +249,9 @@ Architecture docs are structured for **selective loading**. Only 3 small root fi
 | `index.md` | Routing table — maps keywords to doc paths for each service, app, library | Always — agent scans for relevant entries |
 | `summary.md` | System purpose, architecture style, tech stack, cross-cutting concerns | Always — compact system-level overview |
 | `principles.md` | Architecture rules — service boundaries, dependency direction, reusability | Always — enforced during planning and review |
-| `services/<name>/README.md` | Self-contained service doc — purpose, API, data, dependencies | Selectively — only when spec matches keywords |
-| `apps/<name>/README.md` | Self-contained app doc — purpose, routes, service dependencies | Selectively — only when spec matches keywords |
-| `libs/<name>/README.md` | Self-contained library doc — purpose, public API, consumers | Selectively — only when spec matches keywords |
+| `components/services/overview-<name>.md` | Self-contained service doc — purpose, API, data, dependencies | Selectively — only when spec matches keywords |
+| `components/apps/overview-<name>.md` | Self-contained app doc — purpose, routes, service dependencies | Selectively — only when spec matches keywords |
+| `components/libs/overview-<name>.md` | Self-contained library doc — purpose, public API, consumers | Selectively — only when spec matches keywords |
 
 ### Setup
 
@@ -714,10 +709,10 @@ lazyspeckit architecture:show --here
 
 ```bash
 # Install a specific version
-LAZYSPECKIT_REF=v0.8.0 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/v0.8.0/install.sh)"
+LAZYSPECKIT_REF=v0.8.1 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/v0.8.1/install.sh)"
 
 # Self-update to a specific version
-LAZYSPECKIT_REF=v0.8.0 lazyspeckit self-update
+LAZYSPECKIT_REF=v0.8.1 lazyspeckit self-update
 ```
 
 ---

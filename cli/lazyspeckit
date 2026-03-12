@@ -14,11 +14,11 @@ set -Eeuo pipefail
 #   lazyspeckit architecture:show  [--here | <path>]
 #
 # Env:
-#   LAZYSPECKIT_REF=main|v0.8.0|<sha>   pin LazySpecKit downloads (default: main)
+#   LAZYSPECKIT_REF=main|v0.8.1|<sha>   pin LazySpecKit downloads (default: main)
 #   DEBUG=1                             bash trace
 #   NO_COLOR=1                          disable colors
 
-VERSION="0.8.0"
+VERSION="0.8.1"
 
 OWNER_REPO="Hacklone/lazy-spec-kit"
 REF="${LAZYSPECKIT_REF:-main}"
@@ -664,8 +664,8 @@ copy_agency_agent_as_reviewer() {
 # ---------- architecture ----------
 ARCH_DIR=".docs/architecture"
 ARCH_TEMPLATE_FILES=(index.md summary.md principles.md)
-ARCH_DIRS=(services apps libs integrations decisions)
-ARCH_EXAMPLE_DOCS=(services/example/README.md apps/example/README.md libs/example/README.md)
+ARCH_DIRS=(components/services components/apps components/libs integrations decisions)
+ARCH_EXAMPLE_DOCS=(components/services/overview-example.md components/apps/overview-example.md components/libs/overview-example.md)
 
 arch_dir_exists() { [[ -d "${1:-/__missing__}/$ARCH_DIR" ]]; }
 
@@ -772,43 +772,46 @@ cmd_arch_check() {
 
   local arch_root="$target/$ARCH_DIR"
 
-  # Scan for services
-  local services_dir="$arch_root/services"
+  # Scan for services (flat overview-*.md files, excluding overview-example.md)
+  local services_dir="$arch_root/components/services"
   local -a found_services=()
   if [[ -d "$services_dir" ]]; then
-    local s
-    for s in "$services_dir"/*/; do
-      [[ -d "$s" ]] || continue
+    local sf
+    for sf in "$services_dir"/overview-*.md; do
+      [[ -f "$sf" ]] || continue
       local sname
-      sname="$(basename "$s")"
+      sname="$(basename "$sf" .md)"
+      sname="${sname#overview-}"
       [[ "$sname" == "example" ]] && continue
       found_services+=("$sname")
     done
   fi
 
-  # Scan for apps
-  local apps_dir="$arch_root/apps"
+  # Scan for apps (flat overview-*.md files, excluding overview-example.md)
+  local apps_dir="$arch_root/components/apps"
   local -a found_apps=()
   if [[ -d "$apps_dir" ]]; then
-    local a
-    for a in "$apps_dir"/*/; do
-      [[ -d "$a" ]] || continue
+    local af
+    for af in "$apps_dir"/overview-*.md; do
+      [[ -f "$af" ]] || continue
       local aname
-      aname="$(basename "$a")"
+      aname="$(basename "$af" .md)"
+      aname="${aname#overview-}"
       [[ "$aname" == "example" ]] && continue
       found_apps+=("$aname")
     done
   fi
 
-  # Scan for libs
-  local libs_dir="$arch_root/libs"
+  # Scan for libs (flat overview-*.md files, excluding overview-example.md)
+  local libs_dir="$arch_root/components/libs"
   local -a found_libs=()
   if [[ -d "$libs_dir" ]]; then
-    local l
-    for l in "$libs_dir"/*/; do
-      [[ -d "$l" ]] || continue
+    local lf
+    for lf in "$libs_dir"/overview-*.md; do
+      [[ -f "$lf" ]] || continue
       local lname
-      lname="$(basename "$l")"
+      lname="$(basename "$lf" .md)"
+      lname="${lname#overview-}"
       [[ "$lname" == "example" ]] && continue
       found_libs+=("$lname")
     done
@@ -902,7 +905,7 @@ cmd_arch_check() {
     info "Suggested (project directories without architecture docs):"
     local md
     for md in "${undocumented[@]}"; do
-      echo "  - $md  →  add to $ARCH_DIR/services/, apps/, or libs/"
+      echo "  - $md  →  add overview-${md}.md to $ARCH_DIR/components/services/, apps/, or libs/"
     done
   fi
 }
@@ -937,18 +940,17 @@ cmd_arch_show() {
 
   # Services
   echo "Services:"
-  if [[ -d "$arch_root/services" ]]; then
-    local s
+  if [[ -d "$arch_root/components/services" ]]; then
+    local sf
     local has_services="false"
-    for s in "$arch_root/services"/*/; do
-      [[ -d "$s" ]] || continue
+    for sf in "$arch_root/components/services"/overview-*.md; do
+      [[ -f "$sf" ]] || continue
       local sname
-      sname="$(basename "$s")"
+      sname="$(basename "$sf" .md)"
+      sname="${sname#overview-}"
       [[ "$sname" == "example" ]] && continue
       has_services="true"
-      local doc_count
-      doc_count="$(find "$s" -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')"
-      echo "  $(c "36" "•") $sname ($doc_count docs)"
+      echo "  $(c "36" "•") $sname"
     done
     if [[ "$has_services" == "false" ]]; then echo "  (none)"; fi
   else
@@ -958,18 +960,17 @@ cmd_arch_show() {
 
   # Apps
   echo "Apps:"
-  if [[ -d "$arch_root/apps" ]]; then
-    local a
+  if [[ -d "$arch_root/components/apps" ]]; then
+    local af
     local has_apps="false"
-    for a in "$arch_root/apps"/*/; do
-      [[ -d "$a" ]] || continue
+    for af in "$arch_root/components/apps"/overview-*.md; do
+      [[ -f "$af" ]] || continue
       local aname
-      aname="$(basename "$a")"
+      aname="$(basename "$af" .md)"
+      aname="${aname#overview-}"
       [[ "$aname" == "example" ]] && continue
       has_apps="true"
-      local doc_count
-      doc_count="$(find "$a" -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')"
-      echo "  $(c "36" "•") $aname ($doc_count docs)"
+      echo "  $(c "36" "•") $aname"
     done
     if [[ "$has_apps" == "false" ]]; then echo "  (none)"; fi
   else
@@ -979,18 +980,17 @@ cmd_arch_show() {
 
   # Libraries
   echo "Libraries:"
-  if [[ -d "$arch_root/libs" ]]; then
-    local l
+  if [[ -d "$arch_root/components/libs" ]]; then
+    local lf
     local has_libs="false"
-    for l in "$arch_root/libs"/*/; do
-      [[ -d "$l" ]] || continue
+    for lf in "$arch_root/components/libs"/overview-*.md; do
+      [[ -f "$lf" ]] || continue
       local lname
-      lname="$(basename "$l")"
+      lname="$(basename "$lf" .md)"
+      lname="${lname#overview-}"
       [[ "$lname" == "example" ]] && continue
       has_libs="true"
-      local doc_count
-      doc_count="$(find "$l" -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')"
-      echo "  $(c "36" "•") $lname ($doc_count docs)"
+      echo "  $(c "36" "•") $lname"
     done
     if [[ "$has_libs" == "false" ]]; then echo "  (none)"; fi
   else
@@ -1531,7 +1531,7 @@ Debug:
   NO_COLOR=1 lazyspeckit doctor --here
 
 Pin LazySpecKit downloads:
-  LAZYSPECKIT_REF=v0.8.0 lazyspeckit self-update
+  LAZYSPECKIT_REF=v0.8.1 lazyspeckit self-update
 EOF
 }
 

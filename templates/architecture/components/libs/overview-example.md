@@ -1,6 +1,6 @@
 # Library: Example
 
-> Replace "Example" with your library name. One README per shared library/package.
+> Replace "Example" with your library name. Name this file `overview-<library-name>.md`.
 > This file should be self-contained — an agent reading ONLY this file
 > should understand the library well enough to use it correctly.
 

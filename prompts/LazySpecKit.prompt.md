@@ -317,7 +317,7 @@ Check for architecture documentation in `.docs/architecture/`.
 
 2. **Empty-docs check:** After reading `index.md`, check whether the routing table contains any real (non-example, non-commented-out) entries in the Services, Apps, or Libraries sections. If `index.md` has zero real entries — meaning the docs are just scaffolding from `architecture:init` and have not been populated — **fall through to Case B** and generate the full architecture docs from the codebase. Print:
    ```
-   Architecture scaffolding found but no services/apps/libraries documented — generating from codebase analysis...
+   Architecture scaffolding found but no components documented — generating from codebase analysis...
    ```
 
 3. Store the loaded context internally. This context MUST be available to all subsequent phases.
@@ -350,11 +350,11 @@ When architecture docs are missing or only contain empty scaffolding (no real se
    - `index.md` — Build the routing table: list each identified service, app, library, and integration with keywords and doc paths. Format as markdown tables with columns: Name, Purpose, Keywords, Path.
    - `summary.md` — System purpose, architecture style, tech stack table, cross-cutting concerns. Keep it compact — do NOT list individual services (that's what index.md is for).
    - `principles.md` — Infer architecture principles from observed patterns (e.g., if the project uses a layered architecture, document that; if there are clear service boundaries, document those). Include reusability and single-source-of-truth rules.
-   - Create per-service docs: `.docs/architecture/services/<name>/README.md` — purpose, ownership, tech stack, API surface, data model, dependencies.
-   - Create per-app docs: `.docs/architecture/apps/<name>/README.md` — purpose, routes, service dependencies.
-   - Create per-library docs: `.docs/architecture/libs/<name>/README.md` — purpose, public API, consumers, constraints.
+   - Create per-service docs: `.docs/architecture/components/services/overview-<name>.md` — purpose, ownership, tech stack, API surface, data model, dependencies.
+   - Create per-app docs: `.docs/architecture/components/apps/overview-<name>.md` — purpose, routes, service dependencies.
+   - Create per-library docs: `.docs/architecture/components/libs/overview-<name>.md` — purpose, public API, consumers, constraints.
    - Create `integrations/`, `decisions/` directories if they don't exist.
-   - Remove `services/example/`, `apps/example/`, `libs/example/` scaffolding directories — they are no longer needed once real docs are generated.
+   - Remove `overview-example.md` scaffolding files from `components/services/`, `components/apps/`, `components/libs/` — they are no longer needed once real docs are generated.
 
 4. Store the generated context internally for all subsequent phases.
 
@@ -380,7 +380,7 @@ Wait for successful completion before proceeding.
 If architecture context was loaded (or generated) in Phase 1:
 
 1. Match the spec against the `index.md` routing table to identify relevant services, apps, libraries, and integrations by keyword match.
-2. Read ONLY the docs for matched entries (from `.docs/architecture/services/<name>/README.md`, `.docs/architecture/apps/<name>/README.md`, `.docs/architecture/libs/<name>/README.md`, `.docs/architecture/integrations/<name>.md`). Do NOT load unrelated docs — selective loading keeps context focused.
+2. Read ONLY the docs for matched entries (from `.docs/architecture/components/services/overview-<name>.md`, `.docs/architecture/components/apps/overview-<name>.md`, `.docs/architecture/components/libs/overview-<name>.md`, `.docs/architecture/integrations/<name>.md`). Do NOT load unrelated docs — selective loading keeps context focused.
 3. Cross-reference `principles.md` for reusability rules — check if the spec should leverage existing libraries instead of building new logic.
 4. Carry this focused architecture context forward into all subsequent phases.
 
@@ -807,15 +807,15 @@ After implementation and review are complete, update the architecture documentat
 1. **Scan implemented changes:** Review all files created or modified during implementation.
 
 2. **Update existing docs:**
-   - If new endpoints, events, or capabilities were added to an existing service, update its `services/<name>/README.md`.
-   - If new routes or service dependencies were added to an app, update its `apps/<name>/README.md`.
-   - If a library's API changed, update its `libs/<name>/README.md`.
+   - If new endpoints, events, or capabilities were added to an existing service, update its `components/services/overview-<name>.md`.
+   - If new routes or service dependencies were added to an app, update its `components/apps/overview-<name>.md`.
+   - If a library's API changed, update its `components/libs/overview-<name>.md`.
    - Update `index.md` routing table keywords to cover new/changed areas.
 
 3. **Create new docs if needed:**
-   - New service → `.docs/architecture/services/<service-name>/README.md`
-   - New app → `.docs/architecture/apps/<app-name>/README.md`
-   - New library → `.docs/architecture/libs/<lib-name>/README.md`
+   - New service → `.docs/architecture/components/services/overview-<service-name>.md`
+   - New app → `.docs/architecture/components/apps/overview-<app-name>.md`
+   - New library → `.docs/architecture/components/libs/overview-<lib-name>.md`
    - New integration → `.docs/architecture/integrations/<integration-name>.md`
    - Add entries to `index.md` routing table for any new docs.
 

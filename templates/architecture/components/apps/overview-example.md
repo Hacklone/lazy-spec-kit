@@ -1,6 +1,6 @@
 # App: Example
 
-> Replace "Example" with your app name. One README per frontend application.
+> Replace "Example" with your app name. Name this file `overview-<app-name>.md`.
 > This file should be self-contained — an agent reading ONLY this file
 > should understand the app well enough to work with it.
 
@@ -39,7 +39,7 @@
 
 ## Shared Libraries Used
 
-<!-- Which shared libraries from libs/ does this app use?
+<!-- Which shared libraries from components/libs/ does this app use?
 
 - **ui-components** — shared design system components
 - **shared-utils** — validation, formatting helpers
@@ -49,6 +49,6 @@
 
 <!-- App-specific architecture decisions.
 
-- Uses server-side rendering for SEO pages
-- Client-side routing for dashboard pages
+- Uses server-side rendering for SEO
+- State management via Zustand (see ADR-004)
 -->

@@ -31,11 +31,11 @@ if [[ -n "$outfile" ]]; then
     printf '%s\n' "# Architecture Principles" "" "## Service Boundaries" "Rules here" > "$outfile"
   elif [[ "$url" == *templates/architecture/index.md* ]]; then
     printf '%s\n' "# Architecture Context Index" "" "## Services" "Keywords and docs" > "$outfile"
-  elif [[ "$url" == *templates/architecture/services/example/README.md* ]]; then
+  elif [[ "$url" == *templates/architecture/components/services/overview-example.md* ]]; then
     printf '%s\n' "# Service: Example" "" "## Purpose" "Example service" > "$outfile"
-  elif [[ "$url" == *templates/architecture/apps/example/README.md* ]]; then
+  elif [[ "$url" == *templates/architecture/components/apps/overview-example.md* ]]; then
     printf '%s\n' "# App: Example" "" "## Purpose" "Example app" > "$outfile"
-  elif [[ "$url" == *templates/architecture/libs/example/README.md* ]]; then
+  elif [[ "$url" == *templates/architecture/components/libs/overview-example.md* ]]; then
     printf '%s\n' "# Library: Example" "" "## Purpose" "Example library" > "$outfile"
   elif [[ "$url" == *setup.sh* ]]; then
     printf '%s\n' \
@@ -61,7 +61,7 @@ if [[ -n "$outfile" ]]; then
   elif [[ "$url" == *lazyspeckit* ]]; then
     printf '%s\n' \
       '#!/usr/bin/env bash' \
-      'VERSION="0.8.0"' \
+      'VERSION="0.8.1"' \
       '# lazyspeckit marker' \
       'echo "lazyspeckit $VERSION"' > "$outfile"
   else
@@ -108,9 +108,9 @@ teardown() {
   run run_cli architecture:init "$repo"
   [ "$status" -eq 0 ]
   [ -d "$repo/.docs/architecture" ]
-  [ -d "$repo/.docs/architecture/services" ]
-  [ -d "$repo/.docs/architecture/apps" ]
-  [ -d "$repo/.docs/architecture/libs" ]
+  [ -d "$repo/.docs/architecture/components/services" ]
+  [ -d "$repo/.docs/architecture/components/apps" ]
+  [ -d "$repo/.docs/architecture/components/libs" ]
   [ -d "$repo/.docs/architecture/integrations" ]
   [ -d "$repo/.docs/architecture/decisions" ]
 }
@@ -124,9 +124,9 @@ teardown() {
   [ -f "$repo/.docs/architecture/index.md" ]
   [ -f "$repo/.docs/architecture/summary.md" ]
   [ -f "$repo/.docs/architecture/principles.md" ]
-  [ -f "$repo/.docs/architecture/services/example/README.md" ]
-  [ -f "$repo/.docs/architecture/apps/example/README.md" ]
-  [ -f "$repo/.docs/architecture/libs/example/README.md" ]
+  [ -f "$repo/.docs/architecture/components/services/overview-example.md" ]
+  [ -f "$repo/.docs/architecture/components/apps/overview-example.md" ]
+  [ -f "$repo/.docs/architecture/components/libs/overview-example.md" ]
 }
 
 @test "architecture:init downloads ADR example" {
@@ -201,8 +201,8 @@ teardown() {
 @test "architecture:check reports status" {
   local repo
   repo="$(create_test_repo)"
-  mkdir -p "$repo/.docs/architecture/services" "$repo/.docs/architecture/apps" \
-           "$repo/.docs/architecture/libs" "$repo/.docs/architecture/integrations" \
+  mkdir -p "$repo/.docs/architecture/components/services" "$repo/.docs/architecture/components/apps" \
+           "$repo/.docs/architecture/components/libs" "$repo/.docs/architecture/integrations" \
            "$repo/.docs/architecture/decisions"
   echo "summary" > "$repo/.docs/architecture/summary.md"
 
@@ -214,7 +214,9 @@ teardown() {
 @test "architecture:check counts services" {
   local repo
   repo="$(create_test_repo)"
-  mkdir -p "$repo/.docs/architecture/services/auth" "$repo/.docs/architecture/services/billing"
+  mkdir -p "$repo/.docs/architecture/components/services"
+  echo "doc" > "$repo/.docs/architecture/components/services/overview-auth.md"
+  echo "doc" > "$repo/.docs/architecture/components/services/overview-billing.md"
   touch "$repo/.docs/architecture/summary.md"
 
   run run_cli architecture:check "$repo"
@@ -225,7 +227,8 @@ teardown() {
 @test "architecture:check counts apps" {
   local repo
   repo="$(create_test_repo)"
-  mkdir -p "$repo/.docs/architecture/apps/dashboard"
+  mkdir -p "$repo/.docs/architecture/components/apps"
+  echo "doc" > "$repo/.docs/architecture/components/apps/overview-dashboard.md"
   touch "$repo/.docs/architecture/summary.md"
 
   run run_cli architecture:check "$repo"
@@ -274,7 +277,7 @@ teardown() {
 @test "architecture:check suggests undocumented project dirs" {
   local repo
   repo="$(create_test_repo)"
-  mkdir -p "$repo/.docs/architecture/services"
+  mkdir -p "$repo/.docs/architecture/components/services"
   mkdir -p "$repo/backend" "$repo/frontend"
   touch "$repo/.docs/architecture/summary.md"
 
@@ -288,7 +291,7 @@ teardown() {
 @test "architecture:check skips hidden and vendor dirs in suggestions" {
   local repo
   repo="$(create_test_repo)"
-  mkdir -p "$repo/.docs/architecture/services"
+  mkdir -p "$repo/.docs/architecture/components/services"
   mkdir -p "$repo/.hidden" "$repo/node_modules" "$repo/vendor" "$repo/dist"
   mkdir -p "$repo/src"
   touch "$repo/.docs/architecture/summary.md"
@@ -315,7 +318,8 @@ teardown() {
 @test "architecture:check does not suggest already-documented dirs" {
   local repo
   repo="$(create_test_repo)"
-  mkdir -p "$repo/.docs/architecture/services/backend"
+  mkdir -p "$repo/.docs/architecture/components/services"
+  echo "doc" > "$repo/.docs/architecture/components/services/overview-backend.md"
   mkdir -p "$repo/backend" "$repo/frontend"
   touch "$repo/.docs/architecture/summary.md"
 
@@ -335,8 +339,8 @@ teardown() {
 @test "architecture:sync alias works (backward compat)" {
   local repo
   repo="$(create_test_repo)"
-  mkdir -p "$repo/.docs/architecture/services" "$repo/.docs/architecture/apps" \
-           "$repo/.docs/architecture/libs" "$repo/.docs/architecture/integrations" \
+  mkdir -p "$repo/.docs/architecture/components/services" "$repo/.docs/architecture/components/apps" \
+           "$repo/.docs/architecture/components/libs" "$repo/.docs/architecture/integrations" \
            "$repo/.docs/architecture/decisions"
   echo "summary" > "$repo/.docs/architecture/summary.md"
 
@@ -374,25 +378,23 @@ teardown() {
   [[ "$output" == *"missing"* ]]
 }
 
-@test "architecture:show lists services with doc counts" {
+@test "architecture:show lists services" {
   local repo
   repo="$(create_test_repo)"
-  mkdir -p "$repo/.docs/architecture/services/auth"
-  echo "doc" > "$repo/.docs/architecture/services/auth/overview.md"
-  echo "doc" > "$repo/.docs/architecture/services/auth/api.md"
+  mkdir -p "$repo/.docs/architecture/components/services"
+  echo "doc" > "$repo/.docs/architecture/components/services/overview-auth.md"
 
   run run_cli architecture:show "$repo"
   [ "$status" -eq 0 ]
   [[ "$output" == *"Services:"* ]]
   [[ "$output" == *"auth"* ]]
-  [[ "$output" == *"2 docs"* ]]
 }
 
 @test "architecture:show lists apps" {
   local repo
   repo="$(create_test_repo)"
-  mkdir -p "$repo/.docs/architecture/apps/dashboard"
-  echo "doc" > "$repo/.docs/architecture/apps/dashboard/overview.md"
+  mkdir -p "$repo/.docs/architecture/components/apps"
+  echo "doc" > "$repo/.docs/architecture/components/apps/overview-dashboard.md"
 
   run run_cli architecture:show "$repo"
   [ "$status" -eq 0 ]
@@ -429,8 +431,8 @@ teardown() {
 @test "architecture:show shows (none) when empty" {
   local repo
   repo="$(create_test_repo)"
-  mkdir -p "$repo/.docs/architecture/services" "$repo/.docs/architecture/apps" \
-           "$repo/.docs/architecture/libs" "$repo/.docs/architecture/integrations" \
+  mkdir -p "$repo/.docs/architecture/components/services" "$repo/.docs/architecture/components/apps" \
+           "$repo/.docs/architecture/components/libs" "$repo/.docs/architecture/integrations" \
            "$repo/.docs/architecture/decisions"
 
   run run_cli architecture:show "$repo"

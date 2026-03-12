@@ -1,6 +1,6 @@
 # Service: Example
 
-> Replace "Example" with your service name. One README per service.
+> Replace "Example" with your service name. Name this file `overview-<service-name>.md`.
 > This file should be self-contained — an agent reading ONLY this file
 > should understand the service well enough to work with it.
 
@@ -49,10 +49,11 @@
 -->
 
 ### External
-<!-- External APIs or systems used.
+<!-- Third-party APIs, databases, or services.
 
-- **PostgreSQL** — primary data store
-- **Redis** — session cache
+- PostgreSQL 15 (primary data store)
+- Redis (session cache)
+- Stripe API (payment processing)
 -->
 
 ## Key Decisions
@@ -60,5 +61,5 @@
 <!-- Service-specific architecture decisions, or links to ADRs.
 
 - Uses event sourcing for audit trail (see ADR-003)
-- Chose gRPC over REST for internal communication (see ADR-005)
+- Chose JWT over session tokens for stateless auth
 -->
