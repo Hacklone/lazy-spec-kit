@@ -53,6 +53,7 @@ You MUST NOT:
 - Skip mandatory SpecKit commands.
 - Execute any SpecKit command inline without first reading the SpecKit prompt file for that command. Always follow the invocation priority described in "How SpecKit Commands Work".
 - Print, request, or store secrets (API keys, tokens, passwords).
+- Embed sensitive data (tokens, API keys, secrets, passwords, private keys, credentials, connection strings, certificates) in ANY generated file — specs, constitution, architecture docs, ADRs, reviewers, agents, task lists, audit logs, or any other artifact. If sensitive values are encountered in the codebase during analysis, reference them generically (e.g., "uses an API key from environment variable") — NEVER copy actual values.
 - Guess or fabricate validation commands.
 
 You MUST:
@@ -360,6 +361,8 @@ When architecture docs are missing or only contain empty scaffolding (no real co
      - `ui.md` — for components with user-facing surfaces (pages, screens, commands)
    - Create `integrations/`, `decisions/` directories if they don't exist.
    - Remove the `components/example/` scaffolding directory — it is no longer needed once real docs are generated.
+
+   **Sensitive-data guard:** Before writing any generated architecture doc, verify it contains no secrets, tokens, API keys, passwords, private keys, connection strings, or credentials copied from the codebase. Reference secrets generically (e.g., "authenticates via `DATABASE_URL` env var") — never include actual values.
 
 4. Store the generated context internally for all subsequent phases.
 
@@ -823,7 +826,9 @@ After implementation and review are complete, update the architecture documentat
 4. **Architecture Decision Records:**
    If an architecture-significant decision was made (new pattern, technology choice, structural change), create an ADR in `.docs/architecture/decisions/` following the ADR template.
 
-5. **Verify consistency:** Ensure `index.md` keywords cover all components and integrations. Ensure `summary.md` cross-cutting concerns are still accurate. Ensure `principles.md` rules haven't been violated.
+5. **Sensitive-data guard:** Before writing any architecture doc, verify it contains no secrets, tokens, API keys, passwords, private keys, connection strings, or credentials. Reference secrets generically (e.g., "authenticates via `API_KEY` env var") — never include actual values.
+
+6. **Verify consistency:** Ensure `index.md` keywords cover all components and integrations. Ensure `summary.md` cross-cutting concerns are still accurate. Ensure `principles.md` rules haven't been violated.
 
 Print a one-line summary:
 ```
@@ -913,6 +918,7 @@ Rules:
 - If the run ends with BLOCKED, set `outcome` to `"blocked"` and populate `blocker` with the blocker description.
 - Create the `.lazyspeckit/runs/` directory if it doesn't exist.
 - Do NOT log secrets, file contents, or user input — only metadata.
+- Do NOT embed tokens, API keys, passwords, private keys, connection strings, or any credential in any generated artifact. If you encounter sensitive values during analysis, reference them generically (e.g., "API key from env var").
 
 ---
 
