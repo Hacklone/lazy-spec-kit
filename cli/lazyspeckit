@@ -14,11 +14,11 @@ set -Eeuo pipefail
 #   lazyspeckit architecture:show  [--here | <path>]
 #
 # Env:
-#   LAZYSPECKIT_REF=main|v0.8.3|<sha>   pin LazySpecKit downloads (default: main)
+#   LAZYSPECKIT_REF=main|v0.8.4|<sha>   pin LazySpecKit downloads (default: main)
 #   DEBUG=1                             bash trace
 #   NO_COLOR=1                          disable colors
 
-VERSION="0.8.3"
+VERSION="0.8.4"
 
 OWNER_REPO="Hacklone/lazy-spec-kit"
 REF="${LAZYSPECKIT_REF:-main}"
@@ -65,10 +65,18 @@ fetch() {
   local out="${2:-}"
   [[ -n "$url" && -n "$out" ]] || die "fetch: missing url/out"
   if have curl; then
-    curl -fsSL --retry 3 --retry-delay 1 --connect-timeout 10 --max-time 180 \
-      -H "Cache-Control: no-cache" -H "Pragma: no-cache" "$url" -o "$out"
+    if ! curl -fsSL --retry 3 --retry-delay 1 --connect-timeout 10 --max-time 180 \
+         -H "Cache-Control: no-cache" -H "Pragma: no-cache" "$url" -o "$out" 2>/dev/null; then
+      # Strip query string and retry without cache-busting headers
+      local clean_url="${url%%\?*}"
+      curl -fsSL --retry 3 --retry-delay 1 --connect-timeout 10 --max-time 180 \
+        "$clean_url" -o "$out"
+    fi
   elif have wget; then
-    wget -qO "$out" --no-cache "$url"
+    if ! wget -qO "$out" --no-cache "$url" 2>/dev/null; then
+      local clean_url="${url%%\?*}"
+      wget -qO "$out" "$clean_url"
+    fi
   else
     die "Need curl or wget."
   fi
@@ -467,7 +475,9 @@ run_setup() {
 
   local url
   url="$(cache_bust "$(raw_url "$SETUP_REPO_PATH")")"
-  fetch "$url" "$tmp"
+  if ! fetch "$url" "$tmp" 2>&1; then
+    die "Failed to download setup script\n  URL: $(raw_url "$SETUP_REPO_PATH")\n  Hint: If you're on a branch, set LAZYSPECKIT_REF to your branch name."
+  fi
   LAZYSPECKIT_REF="$REF" bash "$tmp" "$target"
 }
 
@@ -697,24 +707,36 @@ cmd_arch_init() {
   for f in "${ARCH_TEMPLATE_FILES[@]}"; do
     tmp_file="$tmp_dir/$f"
     url="$(cache_bust "$(raw_url "$ARCH_TEMPLATES_PATH/$f")")"
-    fetch "$url" "$tmp_file"
+    if ! fetch "$url" "$tmp_file" 2>&1; then
+      die "Failed to download template: $f
+  URL: $(raw_url "$ARCH_TEMPLATES_PATH/$f")
+  Hint: If you're on a branch, set LAZYSPECKIT_REF to your branch name."
+    fi
     [[ -s "$tmp_file" ]] || die "Downloaded template is empty: $f"
   done
 
-  # Download example docs (service, app, lib templates)
+  # Download example docs
   local ex
   for ex in "${ARCH_EXAMPLE_DOCS[@]}"; do
     tmp_file="$tmp_dir/$ex"
     mkdir -p "$(dirname "$tmp_file")"
     url="$(cache_bust "$(raw_url "$ARCH_TEMPLATES_PATH/$ex")")"
-    fetch "$url" "$tmp_file"
+    if ! fetch "$url" "$tmp_file" 2>&1; then
+      die "Failed to download template: $ex
+  URL: $(raw_url "$ARCH_TEMPLATES_PATH/$ex")
+  Hint: If you're on a branch, set LAZYSPECKIT_REF to your branch name."
+    fi
     [[ -s "$tmp_file" ]] || die "Downloaded template is empty: $ex"
   done
 
   # Download ADR example
   local adr_tmp="$tmp_dir/ADR-001-example.md"
   url="$(cache_bust "$(raw_url "$ARCH_TEMPLATES_PATH/decisions/ADR-001-example.md")")"
-  fetch "$url" "$adr_tmp"
+  if ! fetch "$url" "$adr_tmp" 2>&1; then
+    die "Failed to download ADR template
+  URL: $(raw_url "$ARCH_TEMPLATES_PATH/decisions/ADR-001-example.md")
+  Hint: If you're on a branch, set LAZYSPECKIT_REF to your branch name."
+  fi
 
   # Create directory structure
   local d
@@ -1323,7 +1345,9 @@ cmd_self_update() {
   local url
   url="$(cache_bust "$(raw_url "$CLI_REPO_PATH")")"
   info "Updating lazyspeckit CLI (ref: $REF)..."
-  fetch "$url" "$tmp"
+  if ! fetch "$url" "$tmp" 2>&1; then
+    die "Failed to download CLI update\n  URL: $(raw_url "$CLI_REPO_PATH")\n  Hint: If you're on a branch, set LAZYSPECKIT_REF to your branch name."
+  fi
   grep -q "lazyspeckit" "$tmp" || die "Downloaded CLI does not look valid."
   local new_version
   new_version="$(grep -m1 '^VERSION=' "$tmp" | cut -d'"' -f2 || true)"
@@ -1462,7 +1486,7 @@ Debug:
   NO_COLOR=1 lazyspeckit doctor --here
 
 Pin LazySpecKit downloads:
-  LAZYSPECKIT_REF=v0.8.3 lazyspeckit self-update
+  LAZYSPECKIT_REF=v0.8.4 lazyspeckit self-update
 EOF
 }
 

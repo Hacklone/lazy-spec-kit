@@ -717,10 +717,10 @@ lazyspeckit architecture:show --here
 
 ```bash
 # Install a specific version
-LAZYSPECKIT_REF=v0.8.3 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/v0.8.3/install.sh)"
+LAZYSPECKIT_REF=v0.8.4 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/v0.8.4/install.sh)"
 
 # Self-update to a specific version
-LAZYSPECKIT_REF=v0.8.3 lazyspeckit self-update
+LAZYSPECKIT_REF=v0.8.4 lazyspeckit self-update
 ```
 
 ---
