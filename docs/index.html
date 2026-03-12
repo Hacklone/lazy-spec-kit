@@ -975,46 +975,56 @@
       </div>
       <div class="timeline-step">
         <div class="step-label">Phase 1</div>
-        <h3>Specify <span class="badge-auto">automatic</span></h3>
-        <p>Runs <code>/speckit.specify</code> with your spec text verbatim.</p>
+        <h3>Architecture Context <span class="badge-auto">automatic</span></h3>
+        <p>Loads 3 compact root files from <code>.docs/architecture/</code> — index, summary, principles. Agents then selectively load only relevant service/app/library docs. Scales to large monorepos. Skipped if not configured.</p>
       </div>
       <div class="timeline-step">
         <div class="step-label">Phase 2</div>
+        <h3>Specify <span class="badge-auto">automatic</span></h3>
+        <p>Runs <code>/speckit.specify</code> with your spec text. Matches against architecture routing table to selectively load relevant service, app, and library docs.</p>
+      </div>
+      <div class="timeline-step">
+        <div class="step-label">Phase 3</div>
         <h3>Clarify <span class="badge-pause">your input</span></h3>
         <p>Presents clarification questions. Answer once, then sit back. With <code>--auto-clarify</code>, high/medium-confidence questions are answered automatically — you're only asked about genuinely ambiguous items (if any).</p>
       </div>
       <div class="timeline-step">
-        <div class="step-label">Phase 3</div>
+        <div class="step-label">Phase 4</div>
         <h3>Plan <span class="badge-auto">automatic</span></h3>
         <p>Generates a structured implementation plan from the clarified spec.</p>
       </div>
       <div class="timeline-step">
-        <div class="step-label">Phase 4</div>
+        <div class="step-label">Phase 5</div>
         <h3>Tasks <span class="badge-auto">automatic</span></h3>
         <p>Breaks the plan into sequential, actionable tasks.</p>
       </div>
       <div class="timeline-step">
-        <div class="step-label">Phase 5</div>
+        <div class="step-label">Phase 6</div>
         <h3>Quality Gates <span class="badge-auto">automatic</span></h3>
         <p>Runs <code>/speckit.checklist</code> and <code>/speckit.analyze</code> with multi-perspective checks (architecture, security, performance, UX). Auto-fixes spec issues until clean.</p>
       </div>
       <div class="timeline-step">
-        <div class="step-label">Phase 6</div>
+        <div class="step-label">Phase 7</div>
         <h3>Implement <span class="badge-auto">automatic</span></h3>
         <p>Executes all tasks strictly in order.</p>
       </div>
       <div class="timeline-step">
-        <div class="step-label">Phase 7</div>
+        <div class="step-label">Phase 8</div>
         <h3>Validate <span class="badge-auto">automatic</span></h3>
         <p>Detects and runs lint, typecheck, tests, and build. Reports results.</p>
       </div>
       <div class="timeline-step">
-        <div class="step-label">Phase 8</div>
+        <div class="step-label">Phase 9</div>
         <h3>Review & Refine <span class="badge-auto">automatic</span></h3>
         <p>Seven AI agents — architecture, code quality, security, performance, spec compliance, accessibility, tests — review the code from different perspectives and <strong>auto-fix</strong> Critical/High findings. Up to 6 loops until clean.</p>
       </div>
       <div class="timeline-step">
-        <div class="step-label">Phase 9</div>
+        <div class="step-label">Phase 10</div>
+        <h3>Architecture Update <span class="badge-auto">automatic</span></h3>
+        <p>Updates architecture docs to reflect new services, apps, libraries, and decisions. Keeps documentation evergreen without manual effort.</p>
+      </div>
+      <div class="timeline-step">
+        <div class="step-label">Phase 11</div>
         <h3>Final Validation <span class="badge-auto">automatic</span></h3>
         <p>Full validation suite re-runs to guarantee everything is green before completion. No broken code ships.</p>
       </div>
@@ -1340,7 +1350,7 @@ Severity guide:
 
     <div class="cli-cmd">
       <h3>lazyspeckit init <span style="color:var(--text-dim)">[--ai &lt;agent&gt;...] [--no-agency] [--agency-path &lt;dir&gt;] [specify&nbsp;init&nbsp;args...]</span></h3>
-      <p>Initializes SpecKit and installs LazySpecKit prompts. Use <code>--ai</code> to select agents: <code>copilot</code>, <code>claude</code>, <code>cursor</code>, <code>opencode</code>, or <code>all</code>. Downloads <a href="https://github.com/msitarzewski/agency-agents">Agency</a> reviewers by default. If Agency is installed locally, symlinks matching agents instead. Use <code>--no-agency</code> to skip local overlay.</p>
+      <p>Initializes SpecKit and installs LazySpecKit prompts. Use <code>--ai</code> to select agents: <code>copilot</code>, <code>claude</code>, <code>cursor</code>, <code>opencode</code>, or <code>all</code>. Downloads <a href="https://github.com/msitarzewski/agency-agents">Agency</a> reviewers by default. If Agency is installed locally, symlinks matching agents instead. Use <code>--no-agency</code> to skip local overlay. Use <code>--no-architecture</code> to skip architecture docs setup.</p>
     </div>
     <div class="cli-cmd">
       <h3>lazyspeckit upgrade <span style="color:var(--text-dim)">[--here | &lt;path&gt;] [--ai &lt;agent&gt;...]</span></h3>
@@ -1361,6 +1371,18 @@ Severity guide:
     <div class="cli-cmd">
       <h3>lazyspeckit version</h3>
       <p>Shows local and remote CLI versions. Hints if an update is available.</p>
+    </div>
+    <div class="cli-cmd">
+      <h3>lazyspeckit architecture:init <span style="color:var(--text-dim)">[--here | &lt;path&gt;]</span></h3>
+      <p>Creates <code>.docs/architecture/</code> with core template files (index, summary, principles), example service/app/library docs, and directory structure. Never overwrites existing files.</p>
+    </div>
+    <div class="cli-cmd">
+      <h3>lazyspeckit architecture:check <span style="color:var(--text-dim)">[--here | &lt;path&gt;]</span></h3>
+      <p>Scans the project and reports architecture documentation status. Lists documented services, apps, libraries, integrations, and decisions. Suggests project directories that lack documentation. Runs automatically during <code>upgrade</code> and <code>doctor</code>.</p>
+    </div>
+    <div class="cli-cmd">
+      <h3>lazyspeckit architecture:show <span style="color:var(--text-dim)">[--here | &lt;path&gt;]</span></h3>
+      <p>Displays architecture doc status: core files, services with doc counts, apps, libraries, integrations, and architecture decision records.</p>
     </div>
   </div>
 </section>
@@ -1422,12 +1444,12 @@ Severity guide:
     <div class="code-block" style="margin-top: 1.5rem;">
       <div class="code-block-header">
         <span>Pin to a specific version</span>
-        <button class="copy-btn" data-copy="LAZYSPECKIT_REF=v0.7.3 lazyspeckit self-update" aria-label="Copy command">
+        <button class="copy-btn" data-copy="LAZYSPECKIT_REF=v0.8.0 lazyspeckit self-update" aria-label="Copy command">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
           Copy
         </button>
       </div>
-      <pre><span class="cmd">LAZYSPECKIT_REF</span>=<span class="string">v0.7.3</span> <span class="cmd">lazyspeckit self-update</span></pre>
+      <pre><span class="cmd">LAZYSPECKIT_REF</span>=<span class="string">v0.8.0</span> <span class="cmd">lazyspeckit self-update</span></pre>
     </div>
   </div>
 </section>
@@ -1501,9 +1523,9 @@ Severity guide:
     </div>
     <div class="faq-item">
       <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
-        What is Review & Refine? Isn't LazySpecKit just a SpecKit wrapper?
+        What is Review & Refine? How does LazySpecKit go beyond SpecKit?
       </div>
-      <div class="faq-a">No — LazySpecKit adds a full post-implementation phase that SpecKit doesn't have. After implementation and validation, six independent AI agents (architecture, code quality, security, performance, spec compliance, tests) review the code from different perspectives, <strong>automatically fix</strong> Critical and High issues, re-validate, and loop until clean. It's review <em>and</em> refinement, not just reporting.</div>
+      <div class="faq-a">LazySpecKit adds a full post-implementation phase that SpecKit doesn't have. After implementation and validation, six independent AI agents (architecture, code quality, security, performance, spec compliance, tests) review the code from different perspectives, <strong>automatically fix</strong> Critical and High issues, re-validate, and loop until clean. It's review <em>and</em> refinement, not reporting.</div>
     </div>
     <div class="faq-item">
       <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
@@ -1533,7 +1555,19 @@ Severity guide:
       <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
         What does LazySpecKit respect from my repo?
       </div>
-      <div class="faq-a">LazySpecKit respects <code>agents.md</code> governance files. A root-level <code>agents.md</code> applies repo-wide; nested ones apply to their directory subtree. Rules are enforced across all phases.</div>
+      <div class="faq-a">LazySpecKit respects <code>agents.md</code> governance files and architecture documentation in <code>.docs/architecture/</code>. A root-level <code>agents.md</code> applies repo-wide; nested ones apply to their directory subtree. Rules are enforced across all phases. Architecture docs inform planning, review, and service reuse.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        What is <code>.docs/architecture/</code> and do I need it?
+      </div>
+      <div class="faq-a">It contains your project's architecture documentation — services, apps, libraries, principles, and integration patterns. Structured for selective loading so agents only read docs relevant to the current task. Created automatically during <code>lazyspeckit init</code>. Without it, LazySpecKit still works but treats each spec in isolation. With it, specs reuse existing services, respect service boundaries, and create reusable components. Use <code>--no-architecture</code> to skip it.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">
+        How do architecture docs stay up to date?
+      </div>
+      <div class="faq-a">LazySpecKit automatically updates architecture docs at the end of every run (Architecture Update phase). New services, apps, libraries, and integration points are reflected in the docs. Architecture Decision Records (ADRs) are created for significant decisions. Running <code>lazyspeckit architecture:check</code> or <code>lazyspeckit upgrade</code> also checks for gaps.</div>
     </div>
     <div class="faq-item">
       <div class="faq-q" onclick="this.parentElement.classList.toggle('open')">

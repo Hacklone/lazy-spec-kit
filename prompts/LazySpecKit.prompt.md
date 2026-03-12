@@ -16,11 +16,13 @@ Supported options (optional):
 - --review=on               (explicitly enable; default)
 - --auto-clarify            (auto-select recommendations for clarification questions; may still ask for Low-confidence items)
 - --max-review-loops=N      (set maximum review/refine iterations; default: 6)
+- --no-architecture          (skip architecture context loading and update phases)
 
 Defaults:
 - --review=on
 - --auto-clarify=off
 - --max-review-loops=6
+- --no-architecture=off
 
 Parsing rules:
 - Options, if present, MUST appear before the <spec text>.
@@ -49,7 +51,7 @@ You MUST NOT:
 - Claim success if validation is failing.
 - Claim tests/lint/build passed unless they were executed and returned successful exit codes.
 - Skip mandatory SpecKit commands.
-- Execute any SpecKit command inline or simulate its behavior — every SpecKit command MUST be invoked as an actual slash command tool call.
+- Execute any SpecKit command inline without first reading the SpecKit prompt file for that command. Always follow the invocation priority described in "How SpecKit Commands Work".
 - Print, request, or store secrets (API keys, tokens, passwords).
 - Guess or fabricate validation commands.
 
@@ -96,6 +98,22 @@ Before executing ANY phase and before reading, modifying, or creating files:
 
 # Mandatory vs Optional Commands
 
+## How SpecKit Commands Work
+
+SpecKit commands (`/speckit.specify`, `/speckit.clarify`, `/speckit.plan`, `/speckit.tasks`, `/speckit.implement`, `/speckit.checklist`, `/speckit.analyze`, `/speckit.constitution`) are installed by SpecKit as prompt and agent files in the project:
+
+- `.github/prompts/speckit.<command>.prompt.md` (VS Code Copilot prompts)
+- `.github/agents/speckit.<command>.agent.md` (VS Code Copilot agents)
+- `.claude/commands/speckit.<command>.md` (Claude Code commands)
+
+**Invocation priority** — for each SpecKit command, try these methods in order:
+
+1. **Slash command / tool call** — If the command is available as an invokable slash command or tool call in the current environment, invoke it directly (e.g., `/speckit.specify`). This is the preferred method.
+2. **Read prompt file and follow its instructions** — If the command is NOT available as a tool call, locate and read the corresponding SpecKit prompt file (check `.github/prompts/`, `.github/agents/`, or `.claude/commands/`), then follow its instructions to execute the phase. This is the fallback method.
+3. **Blocker** — If neither method works (no tool call available AND no prompt file found on disk), treat as a blocker. Follow the Failure Escalation Protocol. Inform the user that SpecKit must be installed first (e.g., `lazyspeckit init`).
+
+When using fallback method (2), you MUST faithfully follow the SpecKit prompt file's instructions — do NOT simplify, skip steps, or substitute your own logic. Treat the prompt file content as authoritative.
+
 ## Mandatory SpecKit Phases (Never Skip)
 
 - `/speckit.specify`
@@ -103,14 +121,6 @@ Before executing ANY phase and before reading, modifying, or creating files:
 - `/speckit.plan`
 - `/speckit.tasks`
 - `/speckit.implement`
-
-**CRITICAL:** These are external slash commands installed by SpecKit — they are NOT phases you execute or replicate inline. You MUST invoke each one as an actual slash command tool call. You have NO permission to substitute, simulate, or inline their logic under any circumstances.
-
-If any mandatory command is not available as an invokable slash command:
-- Stop immediately.
-- Do NOT attempt to replicate its behavior yourself.
-- Follow the Failure Escalation Protocol.
-- Inform the user that SpecKit must be installed first (e.g. `lazyspeckit init`).
 
 If a command fails during execution:
 - Stop immediately.
@@ -121,10 +131,8 @@ If a command fails during execution:
 - `/speckit.checklist`
 - `/speckit.analyze`
 
-These are also external slash commands. Invoke them as tool calls.
-
-`/speckit.analyze` MUST run.  
-If unavailable, treat as blocker.
+`/speckit.analyze` MUST run.
+If unavailable via any method, treat as blocker.
 
 ## Code Validation Phase (Run Only If Applicable)
 
@@ -166,7 +174,7 @@ If tasks contradict the specification:
 
 ## Spec Artifact Modification Rules
 
-During spec validation/fix loops (Phase 5), you may ONLY modify spec artifacts — the plan, task list, and related SpecKit-managed files. Specifically:
+During spec validation/fix loops (Phase 6), you may ONLY modify spec artifacts — the plan, task list, and related SpecKit-managed files. Specifically:
 
 **Allowed:**
 - Reorder tasks to fix dependency issues.
@@ -224,18 +232,21 @@ At the START of every phase, print a single-line progress indicator:
 
 Phase numbers:
 - Phase 0: Constitution (only if needed)
-- Phase 1: Specify
-- Phase 2: Clarify
-- Phase 3: Plan
-- Phase 4: Tasks
-- Phase 5: Spec Quality Gates
-- Phase 6: Implement
-- Phase 7: Review & Refine (if enabled)
+- Phase 1: Architecture Context (if enabled)
+- Phase 2: Specify
+- Phase 3: Clarify
+- Phase 4: Plan
+- Phase 5: Tasks
+- Phase 6: Spec Quality Gates
+- Phase 7: Implement
+- Phase 8: Review & Refine (if enabled)
+- Phase 9: Architecture Update (if architecture enabled)
 
 Use M = total phases that will execute in this run. Calculate M as follows:
-- Start with 7 (Specify, Clarify, Plan, Tasks, Spec Quality Gates, Implement, Validate).
+- Start with 9 (Architecture Context, Specify, Clarify, Plan, Tasks, Spec Quality Gates, Implement, Review & Refine, Architecture Update).
 - Add 1 if Constitution phase runs (no existing constitution found).
-- Subtract 1 if `--review=off` (Phase 7 skipped).
+- Subtract 1 if `--review=off` (Phase 8 skipped).
+- Subtract 2 if `--no-architecture` (Phases 1 and 9 skipped).
 
 This indicator MUST appear before any other output for that phase. Keep it to exactly one line.
 
@@ -289,7 +300,72 @@ Proceed once the constitution is successfully created.
 
 ---
 
-# Phase 1 — Specify
+# Phase 1 — Architecture Context
+
+If `--no-architecture` was specified, skip this phase entirely.
+
+Check for architecture documentation in `.docs/architecture/`.
+
+## Case A: Architecture docs exist (`.docs/architecture/summary.md` is present)
+
+1. Read these core architecture files (in order):
+   - `.docs/architecture/index.md` — context router with keyword-to-path routing table
+   - `.docs/architecture/summary.md` — high-level system overview, architecture style, tech stack, cross-cutting concerns
+   - `.docs/architecture/principles.md` — architecture rules enforced during planning and review
+
+   These three files are compact and ALWAYS loaded. Do NOT load service/app/lib docs at this stage — they are loaded selectively in Phase 2.
+
+2. **Empty-docs check:** After reading `index.md`, check whether the routing table contains any real (non-example, non-commented-out) entries in the Services, Apps, or Libraries sections. If `index.md` has zero real entries — meaning the docs are just scaffolding from `architecture:init` and have not been populated — **fall through to Case B** and generate the full architecture docs from the codebase. Print:
+   ```
+   Architecture scaffolding found but no services/apps/libraries documented — generating from codebase analysis...
+   ```
+
+3. Store the loaded context internally. This context MUST be available to all subsequent phases.
+
+4. **Quick freshness check:** Compare the services, apps, and libraries listed in `index.md` against actual project directories. If significant discrepancies exist (e.g., project directories not reflected in docs, or documented entries that no longer exist), print a brief warning:
+   ```
+   ⚠️ Architecture docs may be outdated — <N> undocumented directories found. Docs will be updated in Phase 9.
+   ```
+   Do NOT block on this. Continue with the loaded (possibly outdated) context.
+
+5. Print a one-line confirmation:
+   ```
+   Architecture context loaded — <S> services, <A> apps, <L> libraries indexed.
+   ```
+   Where S, A, L are counts derived from `index.md` routing table.
+
+## Case B: Architecture docs do not exist (`.docs/architecture/` missing or `summary.md` absent) — or empty scaffolding (Case A fallthrough)
+
+When architecture docs are missing or only contain empty scaffolding (no real service/app/lib entries), you MUST generate them from the codebase. This ensures every run benefits from architecture awareness — even on first use or after running `architecture:init` on an existing project.
+
+1. Print: `Architecture docs not found — generating from codebase analysis...`
+
+2. **Scan the project** to understand its structure:
+   - Read the project's directory tree (top-level and one level deep).
+   - Read key configuration files: `package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `*.sln`, `pom.xml`, `build.gradle`, `docker-compose.yml`, `Makefile`, or equivalent.
+   - Read the constitution (if available) for tech stack and conventions.
+   - Sample a few key source files to understand patterns, imports, and module boundaries.
+
+3. **Create (or overwrite scaffolding in) `.docs/architecture/` with populated content** (not just templates):
+   - `index.md` — Build the routing table: list each identified service, app, library, and integration with keywords and doc paths. Format as markdown tables with columns: Name, Purpose, Keywords, Path.
+   - `summary.md` — System purpose, architecture style, tech stack table, cross-cutting concerns. Keep it compact — do NOT list individual services (that's what index.md is for).
+   - `principles.md` — Infer architecture principles from observed patterns (e.g., if the project uses a layered architecture, document that; if there are clear service boundaries, document those). Include reusability and single-source-of-truth rules.
+   - Create per-service docs: `.docs/architecture/services/<name>/README.md` — purpose, ownership, tech stack, API surface, data model, dependencies.
+   - Create per-app docs: `.docs/architecture/apps/<name>/README.md` — purpose, routes, service dependencies.
+   - Create per-library docs: `.docs/architecture/libs/<name>/README.md` — purpose, public API, consumers, constraints.
+   - Create `integrations/`, `decisions/` directories if they don't exist.
+   - Remove `services/example/`, `apps/example/`, `libs/example/` scaffolding directories — they are no longer needed once real docs are generated.
+
+4. Store the generated context internally for all subsequent phases.
+
+5. Print:
+   ```
+   Architecture docs generated from codebase — <S> services, <A> apps, <L> libraries documented.
+   ```
+
+---
+
+# Phase 2 — Specify
 
 Run:
 
@@ -299,9 +375,18 @@ Use the provided spec verbatim (excluding any invocation options).
 
 Wait for successful completion before proceeding.
 
+## Architecture Context Lookup
+
+If architecture context was loaded (or generated) in Phase 1:
+
+1. Match the spec against the `index.md` routing table to identify relevant services, apps, libraries, and integrations by keyword match.
+2. Read ONLY the docs for matched entries (from `.docs/architecture/services/<name>/README.md`, `.docs/architecture/apps/<name>/README.md`, `.docs/architecture/libs/<name>/README.md`, `.docs/architecture/integrations/<name>.md`). Do NOT load unrelated docs — selective loading keeps context focused.
+3. Cross-reference `principles.md` for reusability rules — check if the spec should leverage existing libraries instead of building new logic.
+4. Carry this focused architecture context forward into all subsequent phases.
+
 ---
 
-# Phase 2 — Clarify (ONLY STOP HERE)
+# Phase 3 — Clarify (ONLY STOP HERE)
 
 Run:
 
@@ -388,6 +473,14 @@ If the user invoked `/LazySpecKit --auto-clarify <spec text>`:
 - Print a short summary of the chosen answers (one line).
 - Proceed immediately once Low-confidence items (if any) are resolved.
 
+### 7) Architecture-Informed Clarification
+
+If architecture context is available:
+- Use architecture principles and existing patterns to inform Recommendation choices.
+- If the spec implies creating logic that already exists in a library (per `index.md` libs entries), recommend reusing it.
+- If the spec implies a new service that overlaps with an existing one (per `index.md` services entries), flag this as a clarification point.
+- If the spec crosses service boundaries, flag this as a clarification point.
+
 Proceed once clarification is resolved (manual or auto).
 
 ---
@@ -424,17 +517,17 @@ Planning and implementation will now proceed automatically.
 
 ---
 
-# ⛔ No User Interaction Zone (Phases 3–7)
+# ⛔ No User Interaction Zone (Phases 4–9)
 
 From this point forward until the Final Completion Summary, you are in a **fully automated zone**.
 
 - You MUST NOT ask the user any questions.
 - You MUST NOT present choices or options to the user.
 - You MUST NOT pause for confirmation, approval, or feedback.
-- If ANY SpecKit command (`/speckit.plan`, `/speckit.tasks`, `/speckit.checklist`, `/speckit.analyze`, `/speckit.implement`) asks questions or requests input, you MUST auto-answer them yourself using the approved spec, clarification answers, constitution, and `agents.md`.
+- If ANY SpecKit command (`/speckit.plan`, `/speckit.tasks`, `/speckit.checklist`, `/speckit.analyze`, `/speckit.implement`) asks questions or requests input, you MUST auto-answer them yourself using the approved spec, clarification answers, constitution, `agents.md`, and loaded architecture context.
 - The ONLY exception is a fundamental blocker that makes it impossible to continue — in that case, use the BLOCKED escalation format.
 
-This rule applies to ALL remaining phases: Plan, Tasks, Spec Quality Gates, Implement, Validate, and Review & Refine.
+This rule applies to ALL remaining phases: Plan, Tasks, Spec Quality Gates, Implement, Validate, Review & Refine, and Architecture Update.
 
 ---
 
@@ -442,17 +535,22 @@ Continue immediately.
 
 ---
 
-# Phase 3 — Plan
+# Phase 4 — Plan
 
 Run:
 
 /speckit.plan
 
+If architecture context is available, the plan MUST:
+- Align with architecture principles from `principles.md`.
+- Reuse existing services and libraries identified during the Architecture Context Lookup.
+- Respect service boundaries and dependency direction rules from `principles.md`.
+
 Wait for successful completion.
 
 ---
 
-# Phase 4 — Tasks
+# Phase 5 — Tasks
 
 Run:
 
@@ -462,7 +560,7 @@ Tasks must be executed sequentially.
 
 ---
 
-# Phase 5 — Spec Quality Gates (Spec Artifacts Only)
+# Phase 6 — Spec Quality Gates (Spec Artifacts Only)
 
 Run `/speckit.checklist` if available.
 
@@ -480,7 +578,7 @@ Each analyze iteration consists of two steps:
 
 **Step B — Multi-Perspective Check:** Review the plan/tasks from four perspectives:
 
-1. **Architecture** — Does the structure align with the codebase? Are module boundaries sensible?
+1. **Architecture** — Does the structure align with the codebase and loaded architecture context? Are module boundaries sensible? Does the plan reuse existing services?
 2. **Security** — Are auth, input validation, and sensitive-data handling covered where the spec requires them?
 3. **Performance** — Are data access patterns efficient? Are caching/pagination tasks present where implied?
 4. **UX** (skip for backend-only / CLI-only specs) — Are error states, loading states, and edge cases covered?
@@ -534,7 +632,7 @@ These files are now part of the repository governance and MUST be respected by t
 
 ---
 
-# Phase 6 — Implement
+# Phase 7 — Implement
 
 Run:
 
@@ -583,7 +681,7 @@ If repeated environment/tool failures occur:
 
 ---
 
-# Phase 7 — Review & Refine (ON by default; user can disable)
+# Phase 8 — Review & Refine (ON by default; user can disable)
 
 This phase runs ONLY if review is enabled (default).  
 If the user invoked `/LazySpecKit --review=off ...`, skip this entire phase.
@@ -700,6 +798,39 @@ If review changes introduce regressions unrelated to findings, revert the minima
 
 ---
 
+# Phase 9 — Architecture Update
+
+If `--no-architecture` was specified or architecture context was not loaded in Phase 1, skip this phase.
+
+After implementation and review are complete, update the architecture documentation to reflect changes made:
+
+1. **Scan implemented changes:** Review all files created or modified during implementation.
+
+2. **Update existing docs:**
+   - If new endpoints, events, or capabilities were added to an existing service, update its `services/<name>/README.md`.
+   - If new routes or service dependencies were added to an app, update its `apps/<name>/README.md`.
+   - If a library's API changed, update its `libs/<name>/README.md`.
+   - Update `index.md` routing table keywords to cover new/changed areas.
+
+3. **Create new docs if needed:**
+   - New service → `.docs/architecture/services/<service-name>/README.md`
+   - New app → `.docs/architecture/apps/<app-name>/README.md`
+   - New library → `.docs/architecture/libs/<lib-name>/README.md`
+   - New integration → `.docs/architecture/integrations/<integration-name>.md`
+   - Add entries to `index.md` routing table for any new docs.
+
+4. **Architecture Decision Records:**
+   If an architecture-significant decision was made (new pattern, technology choice, structural change), create an ADR in `.docs/architecture/decisions/` following the ADR template.
+
+5. **Verify consistency:** Ensure `index.md` keywords cover all services, apps, libraries, and integrations. Ensure `summary.md` cross-cutting concerns are still accurate. Ensure `principles.md` rules haven't been violated.
+
+Print a one-line summary:
+```
+Architecture docs updated — <changes summary>.
+```
+
+---
+
 # Final Completion Summary (Mandatory)
 
 When ALL phases complete AND all applicable validation returned successful exit codes, print:
@@ -714,6 +845,7 @@ Spec: <one-line summary>
 ✔ Specs validated (analyze clean)  
 ✔ Implemented + verified  
 ✔ Review/refine: <enabled and clean | disabled by user>
+✔ Architecture: <context loaded, docs updated | not configured | disabled by user>
 
 Run locally:
 <1–3 validation commands>
@@ -751,10 +883,12 @@ Where `<timestamp>` is ISO 8601 format: `YYYY-MM-DDTHH-MM-SS` (use hyphens inste
   "options": {
     "review": true,
     "auto_clarify": false,
-    "max_review_loops": 6
+    "max_review_loops": 6,
+    "no_architecture": false
   },
   "phases": {
     "constitution": { "status": "skipped", "reason": "already exists" },
+    "architecture_context": { "status": "loaded", "services": 4, "apps": 2, "libs": 3 },
     "specify": { "status": "completed" },
     "clarify": { "status": "completed", "questions_total": 5, "questions_auto_resolved": 0 },
     "plan": { "status": "completed" },
@@ -762,7 +896,8 @@ Where `<timestamp>` is ISO 8601 format: `YYYY-MM-DDTHH-MM-SS` (use hyphens inste
     "analyze": { "status": "completed", "iterations": 2, "issues_fixed": 4 },
     "implement": { "status": "completed" },
     "validate": { "status": "completed", "commands_run": ["npm run lint", "npm test"] },
-    "review": { "status": "completed", "loops": 2, "reviewers": ["architecture", "code-quality", "security", "performance", "spec-compliance", "test"], "findings_total": 12, "findings_fixed": 10, "findings_remaining": { "critical": 0, "high": 0, "medium": 2, "low": 3 } }
+    "review": { "status": "completed", "loops": 2, "reviewers": ["architecture", "code-quality", "security", "performance", "spec-compliance", "test"], "findings_total": 12, "findings_fixed": 10, "findings_remaining": { "critical": 0, "high": 0, "medium": 2, "low": 3 } },
+    "architecture_update": { "status": "completed", "docs_updated": 3, "docs_created": 1, "adrs_created": 0 }
   },
   "outcome": "success",
   "blocker": null,

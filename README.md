@@ -5,8 +5,8 @@
 <h1 align="center">LazySpecKit ⚡</h1>
 
 <p align="center">
-  <strong>SpecKit without babysitting — with auto-clarify and multi-agent review & auto-fix.</strong><br>
-  Write your spec. With <code>--auto-clarify</code>, you may not even need to answer questions. Everything else — including a multi-perspective review that finds AND fixes issues — runs automatically.
+  <strong>The complete AI development workflow — not just automation, but architecture awareness, multi-agent review & auto-fix, and zero babysitting.</strong><br>
+  Write your spec. LazySpecKit handles everything else: planning, implementation, validation, and a seven-agent review that finds AND fixes issues automatically.
 </p>
 
 <p align="center">
@@ -19,7 +19,21 @@
 
 ---
 
-LazySpecKit goes beyond wrapping [GitHub SpecKit](https://github.com/github/spec-kit). It orchestrates the entire workflow — from constitution setup through implementation and validation — and then launches its own **Review & Refine** phase: seven specialized AI agents, each approaching the code from a different perspective (architecture, code quality, security, performance, spec compliance, accessibility, tests), that don't just *review* but **automatically fix** the issues they find. Five of these reviewers are sourced from [Agency](https://github.com/msitarzewski/agency-agents) — a curated collection of specialized AI agent definitions — and downloaded automatically during setup. Add `--auto-clarify` and the agent even answers its own clarification questions when it's confident — making this the ultimate hands-off, spec-driven development workflow.
+## Why LazySpecKit?
+
+LazySpecKit **extends** [GitHub SpecKit](https://github.com/github/spec-kit) into a fundamentally different development workflow — adding capabilities SpecKit doesn't have:
+
+| | SpecKit alone | LazySpecKit |
+|---|---|---|
+| **Workflow automation** | Manual slash commands between phases | Fully automated end-to-end |
+| **Architecture awareness** | None | Selectively loads architecture docs — ensures specs reuse existing services, libraries, and respect service boundaries |
+| **Clarification** | Always manual | `--auto-clarify` — agent answers its own questions when confident |
+| **Post-implementation review** | None | Seven AI agents review from different perspectives |
+| **Auto-fix** | None | Reviewers fix Critical/High issues automatically |
+| **Governance** | None | Scoped `agents.md` files enforce conventions per directory |
+| **Architecture docs** | None | Auto-generated from codebase, kept evergreen across runs |
+
+LazySpecKit orchestrates the entire workflow — from constitution setup through implementation and validation — and then launches its own **Review & Refine** phase: seven specialized AI agents, each approaching the code from a different perspective (architecture, code quality, security, performance, spec compliance, accessibility, tests), that don't just *review* but **automatically fix** the issues they find. Five of these reviewers are sourced from [Agency](https://github.com/msitarzewski/agency-agents) — a curated collection of specialized AI agent definitions — and downloaded automatically during setup.
 
 ```
 /LazySpecKit Add OAuth login with GitHub and Google. Store users in Postgres. Add tests.
@@ -42,8 +56,9 @@ Want the fully hands-off experience? Add `--auto-clarify`:
 - [What is SpecKit?](#what-is-speckit)
 - [What is a Constitution?](#what-is-a-constitution)
 - [How It Works](#how-it-works)
+- [Architecture Context Awareness](#architecture-context-awareness)
 - [Auto-Clarify — True Hands-Off Mode](#auto-clarify--true-hands-off-mode)
-- [Review & Refine — What Makes LazySpecKit Different](#review--refine--what-makes-lazyspeckit-different)
+- [Review & Refine](#review--refine)
 - [Custom Reviewers](#custom-reviewers)
 - [Agency Integration](#agency-integration)
 - [Supported AI Agents](#supported-ai-agents)
@@ -112,7 +127,7 @@ That's it. LazySpecKit takes over from there — implementation, validation, and
 
 [GitHub SpecKit](https://github.com/github/spec-kit) is a structured workflow for AI-assisted development. Instead of giving an AI agent a vague prompt and hoping for the best, SpecKit turns a natural-language spec into a formal plan, generates tasks, validates spec quality, implements code, and runs validation — all through slash commands (`/speckit.specify`, `/speckit.clarify`, `/speckit.plan`, etc.).
 
-LazySpecKit wraps SpecKit and automates the entire lifecycle — you don't need to run each slash command manually. It also adds a multi-agent review phase that SpecKit doesn't have.
+LazySpecKit builds on top of SpecKit but adds entire capabilities that SpecKit doesn't have — architecture awareness, auto-clarification, multi-agent review with auto-fix, governance enforcement, and automatic architecture documentation. You don't need to run each slash command manually; LazySpecKit orchestrates the full lifecycle and then goes further.
 
 ---
 
@@ -157,10 +172,11 @@ When you run `/LazySpecKit <spec>`, it orchestrates the full SpecKit lifecycle a
 | Phase | What happens | User input needed? |
 |-------|-------------|-------------------|
 | **Constitution** | Checks for an existing [constitution](#what-is-a-constitution); asks you to provide one if missing | Only if missing |
+| **Architecture Context** | Loads 3 compact root files from `.docs/architecture/`, then selectively loads only relevant service/app/library docs. If none exist, **auto-generates from codebase**. Scales to large monorepos | No |
 | **Specify** | Runs `/speckit.specify` with your spec text | No |
-| **Clarify** | Presents clarification questions | **Yes — answer once** (or use `--auto-clarify`) |
+| **Clarify** | Presents clarification questions (architecture-informed recommendations) | **Yes — answer once** (or use `--auto-clarify`) |
 | **Spec Summary** | Prints a concise summary of what will be built | No |
-| **Plan** | Generates implementation plan | No |
+| **Plan** | Generates implementation plan aligned with architecture principles | No |
 | **Tasks** | Breaks plan into sequential tasks | No |
 | **Quality Gates** | Runs `/speckit.checklist` + `/speckit.analyze` with multi-perspective checks (architecture, security, performance, UX), auto-fixes spec issues | No |
 | **Governance** | Creates scoped `agents.md` governance files if missing (root + immediate subdirectories) | No |
@@ -168,10 +184,115 @@ When you run `/LazySpecKit <spec>`, it orchestrates the full SpecKit lifecycle a
 | **Validate** | Runs detected lint / typecheck / tests / build | No |
 | **Review & Refine** | Seven AI agents review from different perspectives — architecture, quality, security, performance, spec compliance, accessibility, tests — and **auto-fix** findings (up to 6 loops, configurable via `--max-review-loops`) | No |
 | **Final Validation** | Full validation suite re-run to guarantee green before completion | No |
+| **Architecture Update** | Updates architecture docs to reflect new services, apps, libraries, and decisions | No |
 
 **You only interact during Constitution (if missing) and Clarify.** With `--auto-clarify`, even Clarify becomes automatic for high/medium-confidence questions — you're only asked about genuinely ambiguous items. Everything else — including multi-agent review and automatic code refinement — is fully automated.
 
 If something goes wrong, LazySpecKit retries up to 3 times, then stops with a clear blocker message — it never silently continues in a broken state.
+
+---
+
+## Architecture Context Awareness
+
+LazySpecKit includes built-in architecture context awareness. When your project has architecture documentation in `.docs/architecture/`, every spec benefits from knowledge of your existing system — services, apps, libraries, principles, and integration patterns.
+
+### Why it matters
+
+Without architecture context, AI agents treat each spec in isolation. They might:
+- Recreate logic that already exists in a shared library
+- Violate service boundaries
+- Introduce patterns inconsistent with your codebase
+- Build one-off solutions instead of reusable components
+
+With architecture context, LazySpecKit ensures new specs **reuse existing libraries and services**, **respect service boundaries**, and **create reusable components** — just like a human architect would.
+
+### Designed for scale
+
+Architecture docs are structured for **selective loading**. Only 3 small root files are always loaded — agents then use the routing table to load only the service/app/library docs relevant to the current task. This keeps context focused even in monorepos with dozens of microservices and micro-frontends.
+
+### How it works
+
+1. **`lazyspeckit init`** creates `.docs/architecture/` with templates and examples
+2. **Phase 1 (Architecture Context)** loads 3 compact root files (`index.md`, `summary.md`, `principles.md`) — or **auto-generates them from codebase analysis** if none exist
+3. **Phase 2 (Selective Loading)** matches spec keywords against the `index.md` routing table and loads only relevant service/app/library docs
+4. **Plan & Quality Gates** validate alignment with architecture principles
+5. **Review & Refine** — the architecture reviewer checks for violations against loaded context
+6. **Phase 9 (Architecture Update)** updates the docs to reflect what was built — keeping them evergreen
+
+### Architecture documentation structure
+
+```
+.docs/architecture/
+├── index.md              # Context router — keyword-to-path routing table (always loaded)
+├── summary.md            # System overview — compact, constant-size (always loaded)
+├── principles.md         # Architecture rules enforced during planning (always loaded)
+├── services/             # Backend services / microservices
+│   ├── example/          # Template — replace with your services
+│   │   └── README.md
+│   └── auth/
+│       └── README.md
+├── apps/                 # Frontend apps / micro-frontends
+│   ├── example/          # Template — replace with your apps
+│   │   └── README.md
+│   └── dashboard/
+│       └── README.md
+├── libs/                 # Shared libraries and packages
+│   ├── example/          # Template — replace with your libraries
+│   │   └── README.md
+│   └── shared-utils/
+│       └── README.md
+├── integrations/         # External system integrations
+│   └── stripe.md
+└── decisions/            # Architecture Decision Records (ADRs)
+    └── ADR-001-example.md
+```
+
+### Key files
+
+| File | Purpose | When it's loaded |
+|------|---------|-----------------|
+| `index.md` | Routing table — maps keywords to doc paths for each service, app, library | Always — agent scans for relevant entries |
+| `summary.md` | System purpose, architecture style, tech stack, cross-cutting concerns | Always — compact system-level overview |
+| `principles.md` | Architecture rules — service boundaries, dependency direction, reusability | Always — enforced during planning and review |
+| `services/<name>/README.md` | Self-contained service doc — purpose, API, data, dependencies | Selectively — only when spec matches keywords |
+| `apps/<name>/README.md` | Self-contained app doc — purpose, routes, service dependencies | Selectively — only when spec matches keywords |
+| `libs/<name>/README.md` | Self-contained library doc — purpose, public API, consumers | Selectively — only when spec matches keywords |
+
+### Setup
+
+Architecture docs are created automatically during `lazyspeckit init`. To add them to an existing project:
+
+```bash
+lazyspeckit architecture:init --here
+```
+
+To skip architecture docs during init:
+
+```bash
+lazyspeckit init --here --ai copilot --no-architecture
+```
+
+> **Note:** Even without `architecture:init`, LazySpecKit auto-generates architecture docs from your codebase on first run (Phase 1). Templates from `architecture:init` provide a head start, but are not required.
+
+### Checking documentation health
+
+Run `architecture:check` to scan your project and validate documentation status:
+
+```bash
+lazyspeckit architecture:check --here
+```
+
+This reports documented services, apps, libraries, integrations, and decisions — and suggests project directories that lack documentation. It runs automatically during `lazyspeckit upgrade` and `lazyspeckit doctor`.
+
+### Architecture update phase
+
+After implementation and review, LazySpecKit automatically updates the architecture docs:
+- Updates service, app, and library docs with new capabilities and dependencies
+- Creates new docs for newly introduced services, apps, or libraries
+- Adds entries to the `index.md` routing table for new docs
+- Records Architecture Decision Records (ADRs) for significant decisions
+
+This keeps architecture documentation evergreen without manual effort.
 
 ---
 
@@ -441,6 +562,12 @@ To skip local Agency auto-detection (downloaded defaults are still used):
 lazyspeckit init --here --ai copilot --no-agency
 ```
 
+To skip architecture documentation setup:
+
+```bash
+lazyspeckit init --here --ai copilot --no-architecture
+```
+
 Additional agents (Cursor, OpenCode) can be added with repeatable `--ai` flags:
 
 ```bash
@@ -541,6 +668,35 @@ lazyspeckit add-reviewer --from-agency testing-reality-checker --force
 
 Shows all commands and examples.
 
+### `lazyspeckit architecture:init`
+
+Creates `.docs/architecture/` with core template files, example service/app/library docs, and directory structure. Never overwrites existing files.
+
+```bash
+lazyspeckit architecture:init --here
+lazyspeckit architecture:init ./my-repo
+```
+
+### `lazyspeckit architecture:check`
+
+Scans the project and reports architecture documentation status — documented services, apps, libraries, integrations, and decisions. Suggests project directories that lack documentation.
+
+```bash
+lazyspeckit architecture:check --here
+```
+
+Runs automatically during `lazyspeckit upgrade` and `lazyspeckit doctor` if architecture docs exist.
+
+> **Note:** `architecture:sync` is accepted as an alias for backward compatibility.
+
+### `lazyspeckit architecture:show`
+
+Displays architecture documentation status — core files, services, apps, libraries, integrations, and decisions with document counts.
+
+```bash
+lazyspeckit architecture:show --here
+```
+
 ---
 
 ---
@@ -558,10 +714,10 @@ Shows all commands and examples.
 
 ```bash
 # Install a specific version
-LAZYSPECKIT_REF=v0.7.3 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/v0.7.3/install.sh)"
+LAZYSPECKIT_REF=v0.8.0 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/v0.8.0/install.sh)"
 
 # Self-update to a specific version
-LAZYSPECKIT_REF=v0.7.3 lazyspeckit self-update
+LAZYSPECKIT_REF=v0.8.0 lazyspeckit self-update
 ```
 
 ---
@@ -662,6 +818,24 @@ After each run, LazySpecKit writes a JSON audit log to `.lazyspeckit/runs/<times
 ### What does LazySpecKit respect from my repo?
 
 LazySpecKit respects `agents.md` governance files. A root-level `agents.md` applies to the entire repo; nested ones apply to their directory and subdirectories. These rules are enforced across all phases. During implementation, LazySpecKit also **creates** scoped `agents.md` files if they're missing — at the root and for immediate subdirectories that contain generated code — so future runs (and other AI agents) benefit from documented project conventions.
+
+### What is `.docs/architecture/` and do I need it?
+
+`.docs/architecture/` contains your project's architecture documentation — services, apps, libraries, principles, and integration patterns. It's created automatically during `lazyspeckit init` and enables architecture-aware spec generation. Without it, LazySpecKit still works but treats each spec in isolation. With it, specs reuse existing services, respect service boundaries, and create reusable components. See [Architecture Context Awareness](#architecture-context-awareness).
+
+### How do I skip architecture documentation?
+
+Use `--no-architecture` during init:
+
+```bash
+lazyspeckit init --here --ai copilot --no-architecture
+```
+
+Or add `--no-architecture` to the `/LazySpecKit` prompt invocation to skip architecture context loading and the architecture update phase for a specific run.
+
+### How do architecture docs stay up to date?
+
+LazySpecKit automatically updates architecture docs at the end of every run (Phase 9 — Architecture Update). New services, apps, libraries, and integration points are reflected in the docs. Architecture Decision Records (ADRs) are created for significant decisions. Running `lazyspeckit architecture:check` or `lazyspeckit upgrade` also checks for gaps.
 
 ### What is Agency and how does it integrate with LazySpecKit?
 

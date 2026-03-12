@@ -9,18 +9,22 @@ set -Eeuo pipefail
 #   lazyspeckit doctor      [--here | <path>]
 #   lazyspeckit self-update
 #   lazyspeckit version
+#   lazyspeckit architecture:init  [--here | <path>]
+#   lazyspeckit architecture:check [--here | <path>]
+#   lazyspeckit architecture:show  [--here | <path>]
 #
 # Env:
-#   LAZYSPECKIT_REF=main|v0.7.3|<sha>   pin LazySpecKit downloads (default: main)
+#   LAZYSPECKIT_REF=main|v0.8.0|<sha>   pin LazySpecKit downloads (default: main)
 #   DEBUG=1                             bash trace
 #   NO_COLOR=1                          disable colors
 
-VERSION="0.7.3"
+VERSION="0.8.0"
 
 OWNER_REPO="Hacklone/lazy-spec-kit"
 REF="${LAZYSPECKIT_REF:-main}"
 CLI_REPO_PATH="cli/lazyspeckit"
 SETUP_REPO_PATH="scripts/setup.sh"
+ARCH_TEMPLATES_PATH="templates/architecture"
 
 SPEC_KIT_GIT="git+https://github.com/github/spec-kit.git"
 
@@ -657,6 +661,378 @@ copy_agency_agent_as_reviewer() {
   fi
 }
 
+# ---------- architecture ----------
+ARCH_DIR=".docs/architecture"
+ARCH_TEMPLATE_FILES=(index.md summary.md principles.md)
+ARCH_DIRS=(services apps libs integrations decisions)
+ARCH_EXAMPLE_DOCS=(services/example/README.md apps/example/README.md libs/example/README.md)
+
+arch_dir_exists() { [[ -d "${1:-/__missing__}/$ARCH_DIR" ]]; }
+
+install_arch_template() {
+  local src="${1:-}" dst="${2:-}"
+  [[ -n "$src" && -n "$dst" ]] || die "install_arch_template: missing src/dst"
+  mkdir -p "$(dirname "$dst")"
+  if [[ ! -f "$dst" ]]; then
+    cp -f "$src" "$dst"
+    return 0
+  fi
+  return 1
+}
+
+cmd_arch_init() {
+  local target_arg="${1:-}"
+  local target
+  target="$(infer_target_simple "$target_arg")"
+  [[ -d "$target" ]] || die "Target folder does not exist: $target"
+
+  info "Initializing architecture documentation in: $target/$ARCH_DIR"
+
+  # Download templates from repo
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  trap 'rm -rf "${tmp_dir:-}"' RETURN
+
+  local f url tmp_file
+  for f in "${ARCH_TEMPLATE_FILES[@]}"; do
+    tmp_file="$tmp_dir/$f"
+    url="$(cache_bust "$(raw_url "$ARCH_TEMPLATES_PATH/$f")")"
+    fetch "$url" "$tmp_file"
+    [[ -s "$tmp_file" ]] || die "Downloaded template is empty: $f"
+  done
+
+  # Download example docs (service, app, lib templates)
+  local ex
+  for ex in "${ARCH_EXAMPLE_DOCS[@]}"; do
+    tmp_file="$tmp_dir/$ex"
+    mkdir -p "$(dirname "$tmp_file")"
+    url="$(cache_bust "$(raw_url "$ARCH_TEMPLATES_PATH/$ex")")"
+    fetch "$url" "$tmp_file"
+    [[ -s "$tmp_file" ]] || die "Downloaded template is empty: $ex"
+  done
+
+  # Download ADR example
+  local adr_tmp="$tmp_dir/ADR-001-example.md"
+  url="$(cache_bust "$(raw_url "$ARCH_TEMPLATES_PATH/decisions/ADR-001-example.md")")"
+  fetch "$url" "$adr_tmp"
+
+  # Create directory structure
+  local d
+  for d in "${ARCH_DIRS[@]}"; do
+    mkdir -p "$target/$ARCH_DIR/$d"
+  done
+
+  # Install core template files (never overwrite existing)
+  local installed=0 skipped=0
+  for f in "${ARCH_TEMPLATE_FILES[@]}"; do
+    if install_arch_template "$tmp_dir/$f" "$target/$ARCH_DIR/$f"; then
+      installed=$((installed + 1))
+    else
+      skipped=$((skipped + 1))
+    fi
+  done
+
+  # Install example docs
+  for ex in "${ARCH_EXAMPLE_DOCS[@]}"; do
+    if install_arch_template "$tmp_dir/$ex" "$target/$ARCH_DIR/$ex"; then
+      installed=$((installed + 1))
+    else
+      skipped=$((skipped + 1))
+    fi
+  done
+
+  # Install ADR example
+  if install_arch_template "$adr_tmp" "$target/$ARCH_DIR/decisions/ADR-001-example.md"; then
+    installed=$((installed + 1))
+  else
+    skipped=$((skipped + 1))
+  fi
+
+  local summary=""
+  [[ "$installed" -gt 0 ]] && summary="${installed} created"
+  [[ "$skipped" -gt 0 ]]   && summary="${summary:+$summary, }${skipped} existing (kept)"
+  ok "Architecture docs: ${summary:-up to date}"
+
+  # Run check after init
+  cmd_arch_check "$target"
+}
+
+cmd_arch_check() {
+  local target_arg="${1:-}"
+  local target
+  target="$(infer_target_simple "$target_arg")"
+  [[ -d "$target" ]] || die "Target folder does not exist: $target"
+
+  if ! arch_dir_exists "$target"; then
+    warn "No architecture docs found. Run: lazyspeckit architecture:init"
+    return 0
+  fi
+
+  info "Checking architecture documentation..."
+
+  local arch_root="$target/$ARCH_DIR"
+
+  # Scan for services
+  local services_dir="$arch_root/services"
+  local -a found_services=()
+  if [[ -d "$services_dir" ]]; then
+    local s
+    for s in "$services_dir"/*/; do
+      [[ -d "$s" ]] || continue
+      local sname
+      sname="$(basename "$s")"
+      [[ "$sname" == "example" ]] && continue
+      found_services+=("$sname")
+    done
+  fi
+
+  # Scan for apps
+  local apps_dir="$arch_root/apps"
+  local -a found_apps=()
+  if [[ -d "$apps_dir" ]]; then
+    local a
+    for a in "$apps_dir"/*/; do
+      [[ -d "$a" ]] || continue
+      local aname
+      aname="$(basename "$a")"
+      [[ "$aname" == "example" ]] && continue
+      found_apps+=("$aname")
+    done
+  fi
+
+  # Scan for libs
+  local libs_dir="$arch_root/libs"
+  local -a found_libs=()
+  if [[ -d "$libs_dir" ]]; then
+    local l
+    for l in "$libs_dir"/*/; do
+      [[ -d "$l" ]] || continue
+      local lname
+      lname="$(basename "$l")"
+      [[ "$lname" == "example" ]] && continue
+      found_libs+=("$lname")
+    done
+  fi
+
+  # Scan for integrations
+  local integrations_dir="$arch_root/integrations"
+  local -a found_integrations=()
+  if [[ -d "$integrations_dir" ]]; then
+    local i_file
+    for i_file in "$integrations_dir"/*.md; do
+      [[ -f "$i_file" ]] || continue
+      local iname
+      iname="$(basename "$i_file" .md)"
+      found_integrations+=("$iname")
+    done
+  fi
+
+  # Scan for decisions
+  local decisions_dir="$arch_root/decisions"
+  local -a found_decisions=()
+  if [[ -d "$decisions_dir" ]]; then
+    local adr
+    for adr in "$decisions_dir"/*.md; do
+      [[ -f "$adr" ]] || continue
+      local adr_name
+      adr_name="$(basename "$adr" .md)"
+      [[ "$adr_name" == "ADR-001-example" ]] && continue
+      found_decisions+=("$adr_name")
+    done
+  fi
+
+  # Detect project directories that could be documented
+  local -a project_dirs=()
+  local pd
+  for pd in "$target"/*/; do
+    [[ -d "$pd" ]] || continue
+    local pd_name
+    pd_name="$(basename "$pd")"
+    # Skip hidden dirs, node_modules, common non-project dirs
+    [[ "$pd_name" == .* ]] && continue
+    [[ "$pd_name" == "node_modules" ]] && continue
+    [[ "$pd_name" == "vendor" ]] && continue
+    [[ "$pd_name" == "dist" ]] && continue
+    [[ "$pd_name" == "build" ]] && continue
+    [[ "$pd_name" == "target" ]] && continue
+    [[ "$pd_name" == "out" ]] && continue
+    [[ "$pd_name" == "coverage" ]] && continue
+    [[ "$pd_name" == "__pycache__" ]] && continue
+    project_dirs+=("$pd_name")
+  done
+
+  # Suggest undocumented project directories (not in services, apps, or libs)
+  local -a all_documented=()
+  all_documented+=("${found_services[@]+"${found_services[@]}"}")
+  all_documented+=("${found_apps[@]+"${found_apps[@]}"}")
+  all_documented+=("${found_libs[@]+"${found_libs[@]}"}")
+
+  local -a undocumented=()
+  local pdir
+  for pdir in "${project_dirs[@]+"${project_dirs[@]}"}" ; do
+    local found="false"
+    local existing
+    for existing in "${all_documented[@]+"${all_documented[@]}"}" ; do
+      [[ "$existing" == "$pdir" ]] && { found="true"; break; }
+    done
+    [[ "$found" == "false" ]] && undocumented+=("$pdir")
+  done
+
+  # Validate core files exist
+  local -a missing_files=()
+  local mf
+  for mf in "${ARCH_TEMPLATE_FILES[@]}"; do
+    [[ -f "$arch_root/$mf" ]] || missing_files+=("$mf")
+  done
+
+  # Report
+  ok "Architecture check complete"
+  echo "  Services: ${#found_services[@]} documented"
+  echo "  Apps: ${#found_apps[@]} documented"
+  echo "  Libraries: ${#found_libs[@]} documented"
+  echo "  Integrations: ${#found_integrations[@]} documented"
+  echo "  Decisions: ${#found_decisions[@]} recorded"
+
+  if [[ ${#missing_files[@]} -gt 0 ]]; then
+    warn "Missing core files: ${missing_files[*]}"
+  fi
+
+  if [[ ${#undocumented[@]} -gt 0 ]]; then
+    echo
+    info "Suggested (project directories without architecture docs):"
+    local md
+    for md in "${undocumented[@]}"; do
+      echo "  - $md  →  add to $ARCH_DIR/services/, apps/, or libs/"
+    done
+  fi
+}
+
+cmd_arch_show() {
+  local target_arg="${1:-}"
+  local target
+  target="$(infer_target_simple "$target_arg")"
+  [[ -d "$target" ]] || die "Target folder does not exist: $target"
+
+  if ! arch_dir_exists "$target"; then
+    warn "No architecture docs found. Run: lazyspeckit architecture:init"
+    return 0
+  fi
+
+  local arch_root="$target/$ARCH_DIR"
+
+  info "Architecture documentation: $arch_root"
+  echo
+
+  # Core files
+  echo "Core files:"
+  local f
+  for f in "${ARCH_TEMPLATE_FILES[@]}"; do
+    if [[ -f "$arch_root/$f" ]]; then
+      echo "  $(c "32" "✓") $f"
+    else
+      echo "  $(c "31" "✗") $f (missing)"
+    fi
+  done
+  echo
+
+  # Services
+  echo "Services:"
+  if [[ -d "$arch_root/services" ]]; then
+    local s
+    local has_services="false"
+    for s in "$arch_root/services"/*/; do
+      [[ -d "$s" ]] || continue
+      local sname
+      sname="$(basename "$s")"
+      [[ "$sname" == "example" ]] && continue
+      has_services="true"
+      local doc_count
+      doc_count="$(find "$s" -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')"
+      echo "  $(c "36" "•") $sname ($doc_count docs)"
+    done
+    if [[ "$has_services" == "false" ]]; then echo "  (none)"; fi
+  else
+    echo "  (none)"
+  fi
+  echo
+
+  # Apps
+  echo "Apps:"
+  if [[ -d "$arch_root/apps" ]]; then
+    local a
+    local has_apps="false"
+    for a in "$arch_root/apps"/*/; do
+      [[ -d "$a" ]] || continue
+      local aname
+      aname="$(basename "$a")"
+      [[ "$aname" == "example" ]] && continue
+      has_apps="true"
+      local doc_count
+      doc_count="$(find "$a" -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')"
+      echo "  $(c "36" "•") $aname ($doc_count docs)"
+    done
+    if [[ "$has_apps" == "false" ]]; then echo "  (none)"; fi
+  else
+    echo "  (none)"
+  fi
+  echo
+
+  # Libraries
+  echo "Libraries:"
+  if [[ -d "$arch_root/libs" ]]; then
+    local l
+    local has_libs="false"
+    for l in "$arch_root/libs"/*/; do
+      [[ -d "$l" ]] || continue
+      local lname
+      lname="$(basename "$l")"
+      [[ "$lname" == "example" ]] && continue
+      has_libs="true"
+      local doc_count
+      doc_count="$(find "$l" -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')"
+      echo "  $(c "36" "•") $lname ($doc_count docs)"
+    done
+    if [[ "$has_libs" == "false" ]]; then echo "  (none)"; fi
+  else
+    echo "  (none)"
+  fi
+  echo
+
+  # Integrations
+  echo "Integrations:"
+  if [[ -d "$arch_root/integrations" ]]; then
+    local i_file
+    local has_integrations="false"
+    for i_file in "$arch_root/integrations"/*.md; do
+      [[ -f "$i_file" ]] || continue
+      has_integrations="true"
+      echo "  $(c "36" "•") $(basename "$i_file" .md)"
+    done
+    if [[ "$has_integrations" == "false" ]]; then echo "  (none)"; fi
+  else
+    echo "  (none)"
+  fi
+  echo
+
+  # Decisions
+  echo "Decisions:"
+  if [[ -d "$arch_root/decisions" ]]; then
+    local adr
+    local has_decisions="false"
+    for adr in "$arch_root/decisions"/*.md; do
+      [[ -f "$adr" ]] || continue
+      local adr_name
+      adr_name="$(basename "$adr" .md)"
+      [[ "$adr_name" == "ADR-001-example" ]] && continue
+      has_decisions="true"
+      echo "  $(c "36" "•") $adr_name"
+    done
+    if [[ "$has_decisions" == "false" ]]; then echo "  (none)"; fi
+  else
+    echo "  (none)"
+  fi
+}
+
 # ---------- init ----------
 run_specify_init_if_needed() {
   local target="${1:-}"; shift || true
@@ -678,8 +1054,9 @@ Tip: Use --here or pass a path-like target (./repo) so the target can be inferre
 }
 
 cmd_init() {
-  # Parse --no-agency, --agency-path flags; classify --ai into primary vs extra
+  # Parse --no-agency, --no-architecture, --agency-path flags; classify --ai into primary vs extra
   local skip_agency="false"
+  local skip_architecture="false"
   local agency_path_override=""
   local -a extra_agents=()
   local -a filtered_args=()
@@ -692,6 +1069,10 @@ cmd_init() {
         ;;
       --no-agency)
         skip_agency="true"
+        shift
+        ;;
+      --no-architecture)
+        skip_architecture="true"
         shift
         ;;
       --agency-path)
@@ -779,6 +1160,11 @@ cmd_init() {
     fi
   fi
 
+  # Initialize architecture docs
+  if [[ "$skip_architecture" != "true" ]]; then
+    cmd_arch_init "$target"
+  fi
+
   echo
   ok "Done."
   echo "Next:"
@@ -859,6 +1245,11 @@ cmd_upgrade() {
     install_agency_reviewers "$target" "$agency_dir" false
   fi
 
+
+  # Run architecture sync if architecture docs exist
+  if arch_dir_exists "$target"; then
+    cmd_arch_check "$target"
+  fi
   echo
   ok "Upgraded in: $target"
   if detect_vscode_usage "$target"; then
@@ -1056,11 +1447,21 @@ cmd_doctor() {
   echo "LazySpecKit prompt files:       $(prompt_files_present "$target" && echo yes || echo no)"
   echo "Cursor prompt installed:        $(cursor_prompt_present "$target" && echo yes || echo no)"
   echo "OpenCode prompt installed:      $(opencode_prompt_present "$target" && echo yes || echo no)"
+  echo "Architecture docs:              $(arch_dir_exists "$target" && echo yes || echo no)"
   echo
 
+  # Run architecture check if docs exist
+  if arch_dir_exists "$target"; then
+    echo
+    cmd_arch_check "$target"
+  fi
+
+  echo
   echo "Actions:"
-  echo "  - upgrade everything: lazyspeckit upgrade --here --ai copilot"
-  echo "  - update CLI+SpecKit: lazyspeckit self-update"
+  echo "  - upgrade everything:  lazyspeckit upgrade --here --ai copilot"
+  echo "  - update CLI+SpecKit:  lazyspeckit self-update"
+  echo "  - init architecture:   lazyspeckit architecture:init"
+  echo "  - check architecture:  lazyspeckit architecture:check"
 }
 
 usage() {
@@ -1068,12 +1469,15 @@ usage() {
 lazyspeckit
 
 Commands:
-  lazyspeckit init        [--ai <agent>...] [--no-agency] [--agency-path <dir>] [specify init args...]
+  lazyspeckit init        [--ai <agent>...] [--no-agency] [--no-architecture] [--agency-path <dir>] [specify init args...]
   lazyspeckit add-reviewer --from-agency <agent> [--as <name>] [--agency-path <dir>] [--force]
   lazyspeckit upgrade     [--here | <path>] [--ai <agent>...] [extra specify init args...]
   lazyspeckit doctor      [--here | <path>]
   lazyspeckit self-update
   lazyspeckit version
+  lazyspeckit architecture:init  [--here | <path>]
+  lazyspeckit architecture:check [--here | <path>]
+  lazyspeckit architecture:show  [--here | <path>]
   lazyspeckit --help
 
 AI agents (--ai):
@@ -1111,17 +1515,23 @@ Agency integration (auto-detected by default):
   bundled reviewers are used instead. No flag needed.
 
   --no-agency         Skip Agency auto-detection (use bundled reviewers only)
+  --no-architecture   Skip architecture docs init (lazyspeckit init only)
   --agency-path <dir> Override Agency install location
   --from-agency <a>   Agency agent name or path (e.g. testing/testing-reality-checker.md)
   --as <name>         Override the installed reviewer filename
   --force             Overwrite an existing reviewer
+
+Architecture:
+  lazyspeckit architecture:init  Create .docs/architecture/ with starter docs and examples
+  lazyspeckit architecture:check Scan project, validate docs, suggest undocumented areas
+  lazyspeckit architecture:show  Display architecture documentation status
 
 Debug:
   DEBUG=1 lazyspeckit doctor --here
   NO_COLOR=1 lazyspeckit doctor --here
 
 Pin LazySpecKit downloads:
-  LAZYSPECKIT_REF=v0.7.3 lazyspeckit self-update
+  LAZYSPECKIT_REF=v0.8.0 lazyspeckit self-update
 EOF
 }
 
@@ -1129,13 +1539,17 @@ main() {
   local cmd="${1:-}"
   shift || true
   case "$cmd" in
-    init)         cmd_init "$@" ;;
-    add-reviewer) cmd_add_reviewer "$@" ;;
-    upgrade)      cmd_upgrade "$@" ;;
-    doctor)       cmd_doctor "$@" ;;
-    self-update)  cmd_self_update ;;
-    version)      cmd_version ;;
-    -h|--help|"")  usage ;;
+    init)                cmd_init "$@" ;;
+    add-reviewer)        cmd_add_reviewer "$@" ;;
+    upgrade)             cmd_upgrade "$@" ;;
+    doctor)              cmd_doctor "$@" ;;
+    self-update)         cmd_self_update ;;
+    version)             cmd_version ;;
+    architecture:init)   cmd_arch_init "$@" ;;
+    architecture:check)  cmd_arch_check "$@" ;;
+    architecture:sync)   cmd_arch_check "$@" ;;  # backward compat alias
+    architecture:show)   cmd_arch_show "$@" ;;
+    -h|--help|"")        usage ;;
     *) die "Unknown command: $cmd (try --help)" ;;
   esac
 }
