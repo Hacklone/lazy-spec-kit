@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LazySpecKit — SpecKit without babysitting + multi-agent review</title>
-  <meta name="description" content="Write your spec. Answer questions. LazySpecKit orchestrates GitHub SpecKit end-to-end, then seven AI agents review and auto-fix your code from different perspectives.">
+  <title>LazySpecKit — The complete AI development workflow</title>
+  <meta name="description" content="The complete AI development workflow — architecture awareness, multi-agent review & auto-fix, and zero babysitting. Write your spec. LazySpecKit handles everything else.">
   <meta name="theme-color" content="#0ff0fc">
   <meta property="og:title" content="LazySpecKit ⚡">
-  <meta property="og:description" content="SpecKit without babysitting. One command to spec, plan, implement, validate — then seven AI agents review and refine the result.">
+  <meta property="og:description" content="The complete AI development workflow — not just automation, but architecture awareness, multi-agent review & auto-fix, and zero babysitting.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://hacklone.github.io/lazy-spec-kit/">
   <meta property="og:image" content="https://hacklone.github.io/lazy-spec-kit/og-image.png">
@@ -762,8 +762,8 @@
   <div class="container">
     <img src="logo.webp" alt="LazySpecKit logo" class="hero-logo">
     <div class="hero-badge"><span class="dot"></span> Open source &middot; MIT License</div>
-    <h1>SpecKit without<br><span class="accent">babysitting.</span></h1>
-    <p class="subtitle">Write your spec. With <code style="font-family:var(--font-mono); font-size:.9em; color:var(--accent)">--auto-clarify</code>, you may not even need to answer questions. Everything else — planning, implementation, validation, and a <strong style="color:var(--text)">multi-agent review that fixes what it finds</strong> — runs automatically.</p>
+    <h1>Spec-driven development,<br><span class="accent">fully automated.</span></h1>
+    <p class="subtitle">The complete AI development workflow — architecture awareness, multi-agent review & auto-fix, and zero babysitting. Write your spec. LazySpecKit handles everything else: planning, implementation, validation, and a <strong style="color:var(--text)">seven-agent review that finds AND fixes issues automatically</strong>.</p>
     <div class="hero-actions">
       <a href="#install" class="btn btn-primary">Get Started</a>
       <a href="https://github.com/Hacklone/lazy-spec-kit" class="btn btn-secondary">View on GitHub</a>
@@ -965,7 +965,7 @@
   <div class="container">
     <p class="section-label">Under the hood</p>
     <h2 class="section-title">How It Works</h2>
-    <p class="section-desc">LazySpecKit orchestrates the full SpecKit lifecycle. You interact at most twice — or with <code>--auto-clarify</code>, potentially not at all. Everything else runs automatically.</p>
+    <p class="section-desc">LazySpecKit automates the entire spec-driven development lifecycle. You interact at most once — or with <code>--auto-clarify</code>, potentially not at all. Everything else runs automatically.</p>
 
     <div class="timeline">
       <div class="timeline-step">
@@ -1123,9 +1123,9 @@
 <!-- ==================== REVIEW & REFINE ==================== -->
 <section id="review-refine">
   <div class="container">
-    <p class="section-label">Beyond SpecKit</p>
+    <p class="section-label">Seven perspectives</p>
     <h2 class="section-title">Multi-Agent Review & Refine</h2>
-    <p class="section-desc">SpecKit stops after implementation and validation. <strong style="color:var(--text)">LazySpecKit keeps going.</strong> Seven independent AI agents — each with a different perspective — review your code <em>and fix what they find</em>. Five are sourced from <a href="https://github.com/msitarzewski/agency-agents">Agency</a> and downloaded automatically.</p>
+    <p class="section-desc">Implementation is only half the job. <strong style="color:var(--text)">LazySpecKit keeps going.</strong> Seven independent AI agents — each with a different perspective — review your code <em>and fix what they find</em>. Five are sourced from <a href="https://github.com/msitarzewski/agency-agents">Agency</a> and downloaded automatically.</p>
 
     <div class="cards">
       <div class="card">
@@ -1193,19 +1193,19 @@
 
     <div class="comparison">
       <div class="comparison-col">
-        <h3>🔧 SpecKit alone</h3>
+        <h3>🔧 Without Review & Refine</h3>
         <ul>
           <li>Spec → Plan → Tasks → Implement → Validate</li>
-          <li>Manual slash commands between each phase</li>
+          <li>Implementation stops after validation passes</li>
           <li>No post-implementation review</li>
           <li>You review the code yourself</li>
           <li>Hope for the best after validation passes</li>
         </ul>
       </div>
       <div class="comparison-col highlight">
-        <h3>⚡ LazySpecKit</h3>
+        <h3>⚡ With Review & Refine (default)</h3>
         <ul>
-          <li>Everything SpecKit does, fully automated</li>
+          <li>Full automated lifecycle from spec to reviewed code</li>
           <li>One command — answer questions once (or use auto-clarify), done</li>
           <li>Auto-clarify: agent answers its own questions when confident</li>
           <li>Seven AI agents review from different perspectives</li>
@@ -1217,7 +1217,7 @@
     </div>
 
     <p style="text-align: center; color: var(--text-muted); font-size: .9rem; margin-top: 2rem;">
-      Review & Refine is <strong style="color: var(--text);">on by default</strong>. Disable with <code style="font-family: var(--font-mono); font-size: .82rem; color: var(--accent);">--review=off</code> if you just want the SpecKit automation.
+      Review & Refine is <strong style="color: var(--text);">on by default</strong>. Disable with <code style="font-family: var(--font-mono); font-size: .82rem; color: var(--accent);">--review=off</code> if you want to skip post-implementation review.
     </p>
 
     <!-- Custom Reviewers -->

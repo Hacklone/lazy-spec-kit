@@ -21,7 +21,7 @@
 
 ## Why LazySpecKit?
 
-LazySpecKit **extends** [GitHub SpecKit](https://github.com/github/spec-kit) into a fundamentally different development workflow — adding capabilities SpecKit doesn't have:
+LazySpecKit is the complete spec-driven development workflow. Built on [GitHub SpecKit](https://github.com/github/spec-kit), it adds architecture awareness, auto-clarification, multi-agent review with auto-fix, governance, and fully automated execution — everything you need out of the box:
 
 | | SpecKit alone | LazySpecKit |
 |---|---|---|
@@ -33,7 +33,7 @@ LazySpecKit **extends** [GitHub SpecKit](https://github.com/github/spec-kit) int
 | **Governance** | None | Scoped `agents.md` files enforce conventions per directory |
 | **Architecture docs** | None | Auto-generated from codebase, kept evergreen across runs |
 
-LazySpecKit orchestrates the entire workflow — from constitution setup through implementation and validation — and then launches its own **Review & Refine** phase: seven specialized AI agents, each approaching the code from a different perspective (architecture, code quality, security, performance, spec compliance, accessibility, tests), that don't just *review* but **automatically fix** the issues they find. Five of these reviewers are sourced from [Agency](https://github.com/msitarzewski/agency-agents) — a curated collection of specialized AI agent definitions — and downloaded automatically during setup.
+LazySpecKit uses SpecKit as its foundation for structured spec processing, then adds full automation, architecture context, and its own **Review & Refine** phase: seven specialized AI agents, each approaching the code from a different perspective (architecture, code quality, security, performance, spec compliance, accessibility, tests), that don't just *review* but **automatically fix** the issues they find. Five of these reviewers are sourced from [Agency](https://github.com/msitarzewski/agency-agents) — a curated collection of specialized AI agent definitions — and downloaded automatically during setup.
 
 ```
 /LazySpecKit Add OAuth login with GitHub and Google. Store users in Postgres. Add tests.
@@ -127,7 +127,7 @@ That's it. LazySpecKit takes over from there — implementation, validation, and
 
 [GitHub SpecKit](https://github.com/github/spec-kit) is a structured workflow for AI-assisted development. Instead of giving an AI agent a vague prompt and hoping for the best, SpecKit turns a natural-language spec into a formal plan, generates tasks, validates spec quality, implements code, and runs validation — all through slash commands (`/speckit.specify`, `/speckit.clarify`, `/speckit.plan`, etc.).
 
-LazySpecKit builds on top of SpecKit but adds entire capabilities that SpecKit doesn't have — architecture awareness, auto-clarification, multi-agent review with auto-fix, governance enforcement, and automatic architecture documentation. You don't need to run each slash command manually; LazySpecKit orchestrates the full lifecycle and then goes further.
+LazySpecKit uses SpecKit as its structured spec processing engine and adds full lifecycle automation, architecture awareness, multi-agent review with auto-fix, governance enforcement, and automatic architecture documentation on top. You don't need to run each slash command manually; LazySpecKit handles the entire workflow from spec to reviewed, validated code.
 
 ---
 
@@ -347,9 +347,9 @@ You can always answer manually in one message: `1: A  2: B  3: Other: <text>`
 
 ## Review & Refine — What Makes LazySpecKit Different
 
-SpecKit stops after implementation and validation. **LazySpecKit keeps going.**
+Most tools stop after implementation and validation. **LazySpecKit keeps going.**
 
-This isn't a single-pass code review. After SpecKit's work is done, LazySpecKit spawns **seven independent AI agents** — each with fresh context and a distinct perspective — that **review the code AND fix what they find**:
+This isn't a single-pass code review. After implementation, LazySpecKit spawns **seven independent AI agents** — each with fresh context and a distinct perspective — that **review the code AND fix what they find**:
 
 | Agent | Perspective | What it catches & fixes |
 |-------|-------------|------------------------|
