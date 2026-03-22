@@ -14,11 +14,11 @@ set -Eeuo pipefail
 #   lazyspeckit architecture:show  [--here | <path>]
 #
 # Env:
-#   LAZYSPECKIT_REF=main|v0.8.4|<sha>   pin LazySpecKit downloads (default: main)
+#   LAZYSPECKIT_REF=main|v0.9.0|<sha>   pin LazySpecKit downloads (default: main)
 #   DEBUG=1                             bash trace
 #   NO_COLOR=1                          disable colors
 
-VERSION="0.8.4"
+VERSION="0.9.0"
 
 OWNER_REPO="Hacklone/lazy-spec-kit"
 REF="${LAZYSPECKIT_REF:-main}"
@@ -183,9 +183,11 @@ detect_vscode_usage() { [[ -d "${1:-/__missing__}/.vscode" || -d "${1:-/__missin
 detect_claude_usage() { [[ -d "${1:-/__missing__}/.claude" || -d "${1:-/__missing__}/.claude/commands" ]]; }
 detect_cursor_usage() { [[ -d "${1:-/__missing__}/.cursor" ]]; }
 detect_opencode_usage() { [[ -d "${1:-/__missing__}/.opencode" ]]; }
+detect_codex_usage() { [[ -d "${1:-/__missing__}/.codex" ]]; }
 prompt_files_present() { [[ -f "${1:-/__missing__}/.github/prompts/LazySpecKit.prompt.md" || -f "${1:-/__missing__}/.claude/commands/LazySpecKit.md" ]]; }
 cursor_prompt_present() { [[ -f "${1:-/__missing__}/.cursor/rules/lazyspeckit.mdc" ]]; }
 opencode_prompt_present() { [[ -f "${1:-/__missing__}/.opencode/agent/LazySpecKit.md" ]]; }
+codex_prompt_present() { [[ -f "${1:-/__missing__}/.codex/agents/LazySpecKit.md" ]]; }
 
 # ---------- ai detection ----------
 extract_ai_from_args() {
@@ -275,8 +277,8 @@ strip_ai_from_args() {
 }
 
 # ---------- ai value classification ----------
-EXTRA_AGENTS=("cursor" "opencode")
-ALL_VALID_AI=("copilot" "claude" "cursor" "opencode")
+EXTRA_AGENTS=("cursor" "opencode" "codex")
+ALL_VALID_AI=("copilot" "claude" "cursor" "opencode" "codex")
 
 is_extra_agent() {
   local v="${1:-}"
@@ -332,6 +334,18 @@ install_opencode_prompt() {
   ok "OpenCode prompt installed: .opencode/agent/LazySpecKit.md"
 }
 
+install_codex_prompt() {
+  local target="${1:-}" prompt_src="${2:-}"
+  [[ -n "$target" && -n "$prompt_src" ]] || die "install_codex_prompt: missing args"
+  [[ -f "$prompt_src" ]] || die "install_codex_prompt: prompt source not found: $prompt_src"
+
+  local dst="$target/.codex/agents/LazySpecKit.md"
+  mkdir -p "$(dirname "$dst")"
+  cp -f "$prompt_src" "$dst"
+
+  ok "Codex prompt installed: .codex/agents/LazySpecKit.md"
+}
+
 install_extra_tool_prompts() {
   local target="${1:-}"; shift || true
   [[ -n "$target" ]] || die "install_extra_tool_prompts: missing target"
@@ -351,6 +365,7 @@ install_extra_tool_prompts() {
     case "$tool" in
       cursor)   install_cursor_prompt   "$target" "$prompt_src" ;;
       opencode) install_opencode_prompt "$target" "$prompt_src" ;;
+      codex)    install_codex_prompt    "$target" "$prompt_src" ;;
       *) warn "Unknown tool target: $tool (skipping)" ;;
     esac
   done
@@ -368,7 +383,7 @@ resolve_extra_tool_targets() {
     if [[ "$skip_next" == "true" ]]; then
       skip_next="false"
       if [[ "$arg" == "all" ]]; then
-        explicit+=("cursor" "opencode")
+        explicit+=("cursor" "opencode" "codex")
       elif is_extra_agent "$arg"; then
         explicit+=("$arg")
       fi
@@ -378,7 +393,7 @@ resolve_extra_tool_targets() {
     if [[ "$arg" == --ai=* ]]; then
       local val="${arg#--ai=}"
       if [[ "$val" == "all" ]]; then
-        explicit+=("cursor" "opencode")
+        explicit+=("cursor" "opencode" "codex")
       elif is_extra_agent "$val"; then
         explicit+=("$val")
       fi
@@ -393,6 +408,7 @@ resolve_extra_tool_targets() {
   # Auto-detect from repo structure
   detect_cursor_usage   "$target" && tools+=("cursor")
   detect_opencode_usage "$target" && tools+=("opencode")
+  detect_codex_usage    "$target" && tools+=("codex")
 
   if [[ ${#tools[@]} -gt 0 ]]; then
     printf "%s\n" "${tools[@]}"
@@ -1043,7 +1059,7 @@ cmd_init() {
         validate_ai_value "$_av"
         if [[ "$_av" == "all" ]]; then
           filtered_args+=("--ai" "copilot")
-          extra_agents+=("cursor" "opencode")
+          extra_agents+=("cursor" "opencode" "codex")
         elif is_extra_agent "$_av"; then
           extra_agents+=("$_av")
         else
@@ -1057,7 +1073,7 @@ cmd_init() {
         validate_ai_value "$_av2"
         if [[ "$_av2" == "all" ]]; then
           filtered_args+=("--ai" "copilot")
-          extra_agents+=("cursor" "opencode")
+          extra_agents+=("cursor" "opencode" "codex")
         elif is_extra_agent "$_av2"; then
           extra_agents+=("$_av2")
         else
@@ -1399,9 +1415,11 @@ cmd_doctor() {
   echo "Claude detected:                $(detect_claude_usage "$target" && echo yes || echo no)"
   echo "Cursor detected:                $(detect_cursor_usage "$target" && echo yes || echo no)"
   echo "OpenCode detected:              $(detect_opencode_usage "$target" && echo yes || echo no)"
+  echo "Codex detected:                 $(detect_codex_usage "$target" && echo yes || echo no)"
   echo "LazySpecKit prompt files:       $(prompt_files_present "$target" && echo yes || echo no)"
   echo "Cursor prompt installed:        $(cursor_prompt_present "$target" && echo yes || echo no)"
   echo "OpenCode prompt installed:      $(opencode_prompt_present "$target" && echo yes || echo no)"
+  echo "Codex prompt installed:         $(codex_prompt_present "$target" && echo yes || echo no)"
   echo "Architecture docs:              $(arch_dir_exists "$target" && echo yes || echo no)"
   echo
 
@@ -1440,6 +1458,7 @@ AI agents (--ai):
   claude              Claude Code      (.claude/commands/LazySpecKit.md)
   cursor              Cursor           (.cursor/rules/lazyspeckit.mdc)
   opencode            OpenCode         (.opencode/agent/LazySpecKit.md)
+  codex               Codex            (.codex/agents/LazySpecKit.md)
   all                 All of the above
                       Upgrade auto-detects installed agents from directory structure.
 
@@ -1448,6 +1467,7 @@ Examples:
   lazyspeckit init ./my-repo --ai claude
   lazyspeckit init --here --ai copilot --ai cursor
   lazyspeckit init --here --ai copilot --ai opencode
+  lazyspeckit init --here --ai copilot --ai codex
   lazyspeckit init --here --ai all
   lazyspeckit init --here --agency-path ~/my-agents
   lazyspeckit init --here --ai copilot --no-agency
@@ -1486,7 +1506,7 @@ Debug:
   NO_COLOR=1 lazyspeckit doctor --here
 
 Pin LazySpecKit downloads:
-  LAZYSPECKIT_REF=v0.8.4 lazyspeckit self-update
+  LAZYSPECKIT_REF=v0.9.0 lazyspeckit self-update
 EOF
 }
 

@@ -535,8 +535,9 @@ All agents use the `--ai` flag. Use `--ai all` to install for every supported ag
 | Claude Code | `--ai claude` | `.claude/commands/LazySpecKit.md` | Restart your session or reopen the repo if the command doesn't appear |
 | Cursor | `--ai cursor` | `.cursor/rules/lazyspeckit.mdc` | MDC format with YAML frontmatter (`alwaysApply: false`) |
 | OpenCode | `--ai opencode` | `.opencode/agent/LazySpecKit.md` | Standard Markdown agent file |
+| Codex | `--ai codex` | `.codex/agents/LazySpecKit.md` | Standard Markdown agent file |
 
-Copilot and Claude are **primary agents** — they drive the full SpecKit lifecycle (specify, plan, implement, validate). Cursor and OpenCode receive the same prompt file so you can use `/LazySpecKit` there too, but SpecKit project setup (`specify init`) is tied to Copilot or Claude.
+Copilot and Claude are **primary agents** — they drive the full SpecKit lifecycle (specify, plan, implement, validate). Cursor, OpenCode, and Codex receive the same prompt file so you can use `/LazySpecKit` there too, but SpecKit project setup (`specify init`) is tied to Copilot or Claude.
 
 
 ---
@@ -571,7 +572,7 @@ To skip architecture documentation setup:
 lazyspeckit init --here --ai copilot --no-architecture
 ```
 
-Additional agents (Cursor, OpenCode) can be added with repeatable `--ai` flags:
+Additional agents (Cursor, OpenCode, Codex) can be added with repeatable `--ai` flags:
 
 ```bash
 # Also install for Cursor
@@ -580,11 +581,14 @@ lazyspeckit init --here --ai copilot --ai cursor
 # Also install for OpenCode
 lazyspeckit init --here --ai copilot --ai opencode
 
+# Also install for Codex
+lazyspeckit init --here --ai copilot --ai codex
+
 # Install for all supported agents at once
 lazyspeckit init --here --ai all
 
 # Combine any agents
-lazyspeckit init --here --ai copilot --ai cursor --ai opencode
+lazyspeckit init --here --ai copilot --ai cursor --ai opencode --ai codex
 ```
 
 ### `lazyspeckit upgrade`
@@ -717,10 +721,10 @@ lazyspeckit architecture:show --here
 
 ```bash
 # Install a specific version
-LAZYSPECKIT_REF=v0.8.4 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/v0.8.4/install.sh)"
+LAZYSPECKIT_REF=v0.9.0 bash -c "$(curl -fsSL https://raw.githubusercontent.com/Hacklone/lazy-spec-kit/v0.9.0/install.sh)"
 
 # Self-update to a specific version
-LAZYSPECKIT_REF=v0.8.4 lazyspeckit self-update
+LAZYSPECKIT_REF=v0.9.0 lazyspeckit self-update
 ```
 
 ---
@@ -897,6 +901,7 @@ rm .github/prompts/LazySpecKit.prompt.md
 rm .claude/commands/LazySpecKit.md
 rm .cursor/rules/lazyspeckit.mdc
 rm .opencode/agent/LazySpecKit.md
+rm .codex/agents/LazySpecKit.md
 ```
 
 ---

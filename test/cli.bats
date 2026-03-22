@@ -51,7 +51,7 @@ if [[ -n "$outfile" ]]; then
   elif [[ "$url" == *lazyspeckit* ]]; then
     printf '%s\n' \
       '#!/usr/bin/env bash' \
-      'VERSION="0.8.4"' \
+      'VERSION="0.9.0"' \
       '# lazyspeckit marker' \
       'echo "lazyspeckit $VERSION"' > "$outfile"
   else
@@ -2473,7 +2473,31 @@ AGENT
   [[ "$output" == *"no"* ]]
 }
 
-# ---- cursor_prompt_present / opencode_prompt_present ----
+# ---- detect_codex_usage ----
+
+@test "cli: detect_codex_usage returns true when .codex dir exists" {
+  local repo
+  repo="$(create_codex_repo)"
+  run bash -c '
+    detect_codex_usage() { [[ -d "${1:-/__missing__}/.codex" ]]; }
+    detect_codex_usage "'"$repo"'" && echo yes || echo no
+  '
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"yes"* ]]
+}
+
+@test "cli: detect_codex_usage returns false without .codex dir" {
+  local repo
+  repo="$(create_bare_repo)"
+  run bash -c '
+    detect_codex_usage() { [[ -d "${1:-/__missing__}/.codex" ]]; }
+    detect_codex_usage "'"$repo"'" && echo yes || echo no
+  '
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"no"* ]]
+}
+
+# ---- cursor_prompt_present / opencode_prompt_present / codex_prompt_present ----
 
 @test "cli: cursor_prompt_present returns true when .mdc exists" {
   local repo="$TEST_TMPDIR/cursor_repo"
@@ -2521,6 +2545,29 @@ AGENT
   [[ "$output" == *"no"* ]]
 }
 
+@test "cli: codex_prompt_present returns true when LazySpecKit.md exists" {
+  local repo="$TEST_TMPDIR/codex_repo"
+  mkdir -p "$repo/.codex/agents"
+  touch "$repo/.codex/agents/LazySpecKit.md"
+  run bash -c '
+    codex_prompt_present() { [[ -f "${1:-/__missing__}/.codex/agents/LazySpecKit.md" ]]; }
+    codex_prompt_present "'"$repo"'" && echo yes || echo no
+  '
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"yes"* ]]
+}
+
+@test "cli: codex_prompt_present returns false when file absent" {
+  local repo
+  repo="$(create_codex_repo)"
+  run bash -c '
+    codex_prompt_present() { [[ -f "${1:-/__missing__}/.codex/agents/LazySpecKit.md" ]]; }
+    codex_prompt_present "'"$repo"'" && echo yes || echo no
+  '
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"no"* ]]
+}
+
 # ---- validate_ai_value ----
 
 @test "cli: validate_ai_value accepts copilot" {
@@ -2535,6 +2582,11 @@ AGENT
 
 @test "cli: validate_ai_value accepts opencode" {
   run run_cli init --here --ai copilot --ai opencode
+  [[ "$output" != *"Unknown --ai"* ]]
+}
+
+@test "cli: validate_ai_value accepts codex" {
+  run run_cli init --here --ai copilot --ai codex
   [[ "$output" != *"Unknown --ai"* ]]
 }
 
@@ -2570,6 +2622,20 @@ AGENT
   '
   [ "$status" -eq 0 ]
   [[ "$output" == "no" ]]
+}
+
+@test "cli: is_extra_agent returns true for codex" {
+  run bash -c '
+    EXTRA_AGENTS=("cursor" "opencode" "codex")
+    is_extra_agent() {
+      local v="${1:-}" ea
+      for ea in "${EXTRA_AGENTS[@]}"; do [[ "$v" == "$ea" ]] && return 0; done
+      return 1
+    }
+    is_extra_agent codex && echo yes || echo no
+  '
+  [ "$status" -eq 0 ]
+  [[ "$output" == "yes" ]]
 }
 
 # ---- cmd_init --ai (extra agents) ----
@@ -2628,7 +2694,36 @@ AGENT
   grep -q "LazySpecKit speckit prompt" "$md"
 }
 
-@test "cli: init --ai all creates both cursor and opencode prompts" {
+@test "cli: init --ai codex creates .codex/agents/LazySpecKit.md" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  run run_cli init --here --ai copilot --ai codex
+  [ "$status" -eq 0 ]
+  [ -f "$repo/.codex/agents/LazySpecKit.md" ]
+}
+
+@test "cli: init --ai codex file contains prompt body" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  run run_cli init --here --ai copilot --ai codex
+  [ "$status" -eq 0 ]
+  local md="$repo/.codex/agents/LazySpecKit.md"
+  [ -f "$md" ]
+  grep -q "LazySpecKit speckit prompt" "$md"
+}
+
+@test "cli: init --ai codex does not pass codex to specify" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  run run_cli init --here --ai copilot --ai codex
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"specify"*"codex"* ]]
+}
+
+@test "cli: init --ai all creates cursor, opencode, and codex prompts" {
   local repo
   repo="$(create_test_repo)"
   cd "$repo"
@@ -2636,6 +2731,7 @@ AGENT
   [ "$status" -eq 0 ]
   [ -f "$repo/.cursor/rules/lazyspeckit.mdc" ]
   [ -f "$repo/.opencode/agent/LazySpecKit.md" ]
+  [ -f "$repo/.codex/agents/LazySpecKit.md" ]
 }
 
 @test "cli: init --ai cursor --ai opencode creates both prompts" {
@@ -2648,17 +2744,29 @@ AGENT
   [ -f "$repo/.opencode/agent/LazySpecKit.md" ]
 }
 
-@test "cli: init --ai cursor/opencode prints success messages" {
+@test "cli: init --ai cursor --ai opencode --ai codex creates all three prompts" {
   local repo
   repo="$(create_test_repo)"
   cd "$repo"
-  run run_cli init --here --ai copilot --ai cursor --ai opencode
+  run run_cli init --here --ai copilot --ai cursor --ai opencode --ai codex
+  [ "$status" -eq 0 ]
+  [ -f "$repo/.cursor/rules/lazyspeckit.mdc" ]
+  [ -f "$repo/.opencode/agent/LazySpecKit.md" ]
+  [ -f "$repo/.codex/agents/LazySpecKit.md" ]
+}
+
+@test "cli: init --ai cursor/opencode/codex prints success messages" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  run run_cli init --here --ai copilot --ai cursor --ai opencode --ai codex
   [ "$status" -eq 0 ]
   [[ "$output" == *"Cursor prompt installed"* ]]
   [[ "$output" == *"OpenCode prompt installed"* ]]
+  [[ "$output" == *"Codex prompt installed"* ]]
 }
 
-@test "cli: init without --ai cursor/opencode does not create extra files" {
+@test "cli: init without --ai cursor/opencode/codex does not create extra files" {
   local repo
   repo="$(create_test_repo)"
   cd "$repo"
@@ -2666,6 +2774,7 @@ AGENT
   [ "$status" -eq 0 ]
   [ ! -f "$repo/.cursor/rules/lazyspeckit.mdc" ]
   [ ! -f "$repo/.opencode/agent/LazySpecKit.md" ]
+  [ ! -f "$repo/.codex/agents/LazySpecKit.md" ]
 }
 
 @test "cli: init --ai cursor does not pass cursor to specify" {
@@ -2704,6 +2813,16 @@ AGENT
   [ -f "$repo/.opencode/agent/LazySpecKit.md" ]
 }
 
+@test "cli: upgrade --ai codex installs codex prompt" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  create_fake_specify
+  run run_cli upgrade --here --ai copilot --ai codex
+  [ "$status" -eq 0 ]
+  [ -f "$repo/.codex/agents/LazySpecKit.md" ]
+}
+
 @test "cli: upgrade auto-detects cursor when .cursor dir exists" {
   local repo
   repo="$(create_cursor_repo)"
@@ -2726,6 +2845,16 @@ AGENT
   [ -f "$repo/.opencode/agent/LazySpecKit.md" ]
 }
 
+@test "cli: upgrade auto-detects codex when .codex dir exists" {
+  local repo
+  repo="$(create_codex_repo)"
+  cd "$repo"
+  create_fake_specify
+  run run_cli upgrade --here --ai copilot
+  [ "$status" -eq 0 ]
+  [ -f "$repo/.codex/agents/LazySpecKit.md" ]
+}
+
 @test "cli: upgrade auto-detects both cursor and opencode" {
   local repo
   repo="$(create_cursor_opencode_repo)"
@@ -2737,7 +2866,19 @@ AGENT
   [ -f "$repo/.opencode/agent/LazySpecKit.md" ]
 }
 
-@test "cli: upgrade without cursor/opencode dirs creates no extra files" {
+@test "cli: upgrade auto-detects cursor, opencode, and codex" {
+  local repo
+  repo="$(create_all_extra_repo)"
+  cd "$repo"
+  create_fake_specify
+  run run_cli upgrade --here --ai copilot
+  [ "$status" -eq 0 ]
+  [ -f "$repo/.cursor/rules/lazyspeckit.mdc" ]
+  [ -f "$repo/.opencode/agent/LazySpecKit.md" ]
+  [ -f "$repo/.codex/agents/LazySpecKit.md" ]
+}
+
+@test "cli: upgrade without cursor/opencode/codex dirs creates no extra files" {
   local repo
   repo="$(create_test_repo)"
   cd "$repo"
@@ -2746,6 +2887,7 @@ AGENT
   [ "$status" -eq 0 ]
   [ ! -f "$repo/.cursor/rules/lazyspeckit.mdc" ]
   [ ! -f "$repo/.opencode/agent/LazySpecKit.md" ]
+  [ ! -f "$repo/.codex/agents/LazySpecKit.md" ]
 }
 
 # ---- cmd_doctor cursor/opencode output ----
@@ -2830,13 +2972,55 @@ AGENT
   [[ "$output" == *"OpenCode prompt installed"*"no"* ]]
 }
 
+# ---- cmd_doctor codex output ----
+
+@test "cli: doctor shows Codex detected yes when .codex exists" {
+  local repo
+  repo="$(create_codex_repo)"
+  cd "$repo"
+  run run_cli doctor --here
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Codex detected"*"yes"* ]]
+}
+
+@test "cli: doctor shows Codex detected no without .codex" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  run run_cli doctor --here
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Codex detected"*"no"* ]]
+}
+
+@test "cli: doctor shows Codex prompt installed yes after init --ai codex" {
+  local repo
+  repo="$(create_test_repo)"
+  cd "$repo"
+  create_fake_specify
+  run run_cli init --here --ai copilot --ai codex
+  [ "$status" -eq 0 ]
+  run run_cli doctor --here
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Codex prompt installed"*"yes"* ]]
+}
+
+@test "cli: doctor shows Codex prompt installed no before codex install" {
+  local repo
+  repo="$(create_codex_repo)"
+  cd "$repo"
+  run run_cli doctor --here
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Codex prompt installed"*"no"* ]]
+}
+
 # ---- usage ----
 
-@test "cli: usage lists cursor and opencode as --ai values" {
+@test "cli: usage lists cursor, opencode, and codex as --ai values" {
   run run_cli --help
   [ "$status" -eq 0 ]
   [[ "$output" == *"cursor"* ]]
   [[ "$output" == *"opencode"* ]]
+  [[ "$output" == *"codex"* ]]
 }
 
 @test "cli: usage includes --ai all example" {

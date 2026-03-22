@@ -218,3 +218,17 @@ create_cursor_opencode_repo() {
   mkdir -p "$dir/.specify" "$dir/.cursor" "$dir/.opencode"
   echo "$dir"
 }
+
+# Create a test repo with .codex/ dir (simulating a Codex project)
+create_codex_repo() {
+  local dir="${1:-$TEST_TMPDIR/repo}"
+  mkdir -p "$dir/.specify" "$dir/.codex"
+  echo "$dir"
+}
+
+# Create a test repo with .cursor/, .opencode/, and .codex/
+create_all_extra_repo() {
+  local dir="${1:-$TEST_TMPDIR/repo}"
+  mkdir -p "$dir/.specify" "$dir/.cursor" "$dir/.opencode" "$dir/.codex"
+  echo "$dir"
+}

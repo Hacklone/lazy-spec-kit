@@ -916,8 +916,9 @@
 <span class="comment"># For Claude Code</span>
 <span class="cmd">lazyspeckit init</span> <span class="flag">--here --ai claude</span>
 
-<span class="comment"># Also install for Cursor or OpenCode</span>
+<span class="comment"># Also install for Cursor, OpenCode, or Codex</span>
 <span class="cmd">lazyspeckit init</span> <span class="flag">--here --ai copilot --ai cursor</span>
+<span class="cmd">lazyspeckit init</span> <span class="flag">--here --ai copilot --ai codex</span>
 <span class="cmd">lazyspeckit init</span> <span class="flag">--here --ai all</span></pre>
     </div>
 
@@ -1350,11 +1351,11 @@ Severity guide:
 
     <div class="cli-cmd">
       <h3>lazyspeckit init <span style="color:var(--text-dim)">[--ai &lt;agent&gt;...] [--no-agency] [--agency-path &lt;dir&gt;] [specify&nbsp;init&nbsp;args...]</span></h3>
-      <p>Initializes SpecKit and installs LazySpecKit prompts. Use <code>--ai</code> to select agents: <code>copilot</code>, <code>claude</code>, <code>cursor</code>, <code>opencode</code>, or <code>all</code>. Downloads <a href="https://github.com/msitarzewski/agency-agents">Agency</a> reviewers by default. If Agency is installed locally, symlinks matching agents instead. Use <code>--no-agency</code> to skip local overlay. Use <code>--no-architecture</code> to skip architecture docs setup.</p>
+      <p>Initializes SpecKit and installs LazySpecKit prompts. Use <code>--ai</code> to select agents: <code>copilot</code>, <code>claude</code>, <code>cursor</code>, <code>opencode</code>, <code>codex</code>, or <code>all</code>. Downloads <a href="https://github.com/msitarzewski/agency-agents">Agency</a> reviewers by default. If Agency is installed locally, symlinks matching agents instead. Use <code>--no-agency</code> to skip local overlay. Use <code>--no-architecture</code> to skip architecture docs setup.</p>
     </div>
     <div class="cli-cmd">
       <h3>lazyspeckit upgrade <span style="color:var(--text-dim)">[--here | &lt;path&gt;] [--ai &lt;agent&gt;...]</span></h3>
-      <p>Upgrades SpecKit CLI, project files, LazySpecKit prompts, and reviewer skill files. Auto-detects all configured agents (Copilot, Claude, Cursor, OpenCode) from directory structure. Downloads latest Agency reviewers. SpecKit failures are non-fatal — prompts and reviewers always update.</p>
+      <p>Upgrades SpecKit CLI, project files, LazySpecKit prompts, and reviewer skill files. Auto-detects all configured agents (Copilot, Claude, Cursor, OpenCode, Codex) from directory structure. Downloads latest Agency reviewers. SpecKit failures are non-fatal — prompts and reviewers always update.</p>
     </div>
     <div class="cli-cmd">
       <h3>lazyspeckit doctor <span style="color:var(--text-dim)">[--here | &lt;path&gt;]</span></h3>
@@ -1419,6 +1420,12 @@ Severity guide:
         <div class="agent-path">.opencode/agent/LazySpecKit.md</div>
         <div class="agent-tip">Standard Markdown agent file</div>
       </div>
+      <div class="agent-card">
+        <h3>Codex</h3>
+        <div class="agent-flag">--ai codex</div>
+        <div class="agent-path">.codex/agents/LazySpecKit.md</div>
+        <div class="agent-tip">Standard Markdown agent file</div>
+      </div>
     </div>
   </div>
 </section>
@@ -1444,12 +1451,12 @@ Severity guide:
     <div class="code-block" style="margin-top: 1.5rem;">
       <div class="code-block-header">
         <span>Pin to a specific version</span>
-        <button class="copy-btn" data-copy="LAZYSPECKIT_REF=v0.8.4 lazyspeckit self-update" aria-label="Copy command">
+        <button class="copy-btn" data-copy="LAZYSPECKIT_REF=v0.9.0 lazyspeckit self-update" aria-label="Copy command">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
           Copy
         </button>
       </div>
-      <pre><span class="cmd">LAZYSPECKIT_REF</span>=<span class="string">v0.8.4</span> <span class="cmd">lazyspeckit self-update</span></pre>
+      <pre><span class="cmd">LAZYSPECKIT_REF</span>=<span class="string">v0.9.0</span> <span class="cmd">lazyspeckit self-update</span></pre>
     </div>
   </div>
 </section>
@@ -1631,7 +1638,8 @@ Severity guide:
     <div class="code-block">
       <div class="code-block-header"><span>Remove prompts from a repo</span></div>
       <pre><span class="cmd">rm</span> .github/prompts/LazySpecKit.prompt.md
-<span class="cmd">rm</span> .claude/commands/LazySpecKit.md</pre>
+<span class="cmd">rm</span> .claude/commands/LazySpecKit.md
+<span class="cmd">rm</span> .codex/agents/LazySpecKit.md</pre>
     </div>
   </div>
 </section>
