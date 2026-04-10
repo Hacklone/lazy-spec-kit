@@ -389,16 +389,31 @@ If SpecKit does not provide explicit options:
   C) I’m unsure
   D) Other: <free text>
 
-### 4) Answer Contract (Manual Mode)
+### 4) Answer Collection (Manual Mode)
 
-After listing questions, instruct the user to reply in exactly this format:
+#### Preferred: Built-in Q&A Tool
+
+If the agent runtime provides a structured question/answer tool (e.g., VS Code Copilot's `askQuestions` tool, or equivalent), you MUST use it to collect answers instead of asking in a chat message. This saves the user a premium request round-trip.
+
+Mapping rules:
+- Each clarification question → one question entry with `header` set to `"Q<N>"` and `question` set to the short question text.
+- Options A/B/C/D → `options` array (labels: `"A) ..."`, `"B) ..."`, etc.). Mark the recommended option with `recommended: true`.
+- If the question includes `D) Other: <free text>`, keep `allowFreeformInput: true` (the default).
+- If all valid answers are covered by options and free-text makes no sense, set `allowFreeformInput: false`.
+- Present ALL questions in a single tool invocation.
+
+After collecting answers, map them back to the `1: A` / `2: C` / `3: Other: <text>` format internally and continue.
+
+#### Fallback: Chat-Based Answers
+
+If no Q&A tool is available, fall back to a chat message. After listing questions, instruct the user to reply in exactly this format:
 
 1: A
 2: C
 3: Other: <text>
 
-Rules:
-- Accept a single user message containing all answers.
+#### Common rules (both modes)
+- Accept a single response containing all answers.
 - If any answers are missing, ask ONLY for the missing numbers (do not repeat answered questions).
 - Treat any extra requirements in answers as authoritative additions.
 
